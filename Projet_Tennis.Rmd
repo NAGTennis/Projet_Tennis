@@ -168,15 +168,24 @@ Tennis_table[,':='(ratioPlayer1=ratioPlayer1,ratioPlayer2=ratioPlayer2,NbrVictPl
 
 
 
-Varibale a rajouter/creer : 
-Fatigue du joueur -> fonction du nombre de matchs fait ces derniers jours et du nombre de jeux disputés ces derniers temps
-Ranking position -> prendre en compte la position du joueur, faire eventuellement un ratio avec les points
-Très bon serveur ou pas -> influence dans les TieBreak
-Endurant ou pas (exemple s il a tendance a gagné ces matchs en 5 set ou 3 pour les filles)
-Nombre de jeu par match, en cas de Tie break rajouter un jeu suppl?mentaire 
-n derni?res confrontations sur cette surface
-10 derni?res confrontations sur toutes les sufraces 
-Surface de prédilection 
+Varibale a rajouter/creer pour les statisiques faire sous 4 formes : générale,selon le head to head, selon le terrain, sur la saison
+Fatigue du joueur -> fonction du nombre de matchs fait ces derniers jours et du nombre de jeux disputés ces derniers temps  Axel
+Caracteristiques des joueurs Axel
+Endurant ou pas (exemple s il a tendance a gagné ces matchs en 5 set ou 3 pour les filles) Axel
+Nombre de jeu par match, en cas de Tie break rajouter un jeu suppl?mentaire Axel
+n derni?res confrontations sur cette surface Greg
+10 derni?res confrontations sur toutes les sufraces Greg
+n dernière confrontation en head to head GreG
+Surface de prédilection Nardjesse
+Nombre de victoires par saison Nardjesse
+Nombre de victoire par saison prec Nardjesse
+Nombre de titre par saison Nardjesse
+Reviens d'un abandon Axel
+Nombre de titre total Nardjesse
+Taux de victoire par tournoi Greg
+Taux de break 
+Nombres de jeu 
+
 
 
 

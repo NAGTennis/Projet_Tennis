@@ -178,22 +178,22 @@ date
 #1) Faire la fonction puis faire un Lapply => s'applique ? tout le jeu de donn?es
 #2) Faire une boucle for pour avoir un vecteur de la taille de la table puis un cbind
 
-
-Hist<-NULL
-
-
-sCORE<-function(n,player1,player2,date){
-  
-  temp<-setorder(Tennis_table[(DateTourney<date) & 
-                                    ((player1_id==player1 & player2_id ==player2) | (player1_id==player2 & player2_id ==player1))],-DateTourney)[1:n]
-                                    
-ratioPlayer1[i]<-mean(as.numeric(player1==temp$winner_id))
-ratioPlayer2[i]<-mean(as.numeric(player2==temp$winner_id))
-NbrVictPlayer1[i]<-sum(as.numeric(player1==temp$winner_id))
-NbrVictPlayer2[i]<-sum(as.numeric(player2==temp$winner_id)) 
-
-
-}
+# 
+# Hist<-NULL
+# 
+# 
+# sCORE<-function(n,player1,player2,date){
+#   
+#   temp<-setorder(Tennis_table[(DateTourney<date) & 
+#                                     ((player1_id==player1 & player2_id ==player2) | (player1_id==player2 & player2_id ==player1))],-DateTourney)[1:n]
+#                                     
+# ratioPlayer1[i]<-mean(as.numeric(player1==temp$winner_id))
+# ratioPlayer2[i]<-mean(as.numeric(player2==temp$winner_id))
+# NbrVictPlayer1[i]<-sum(as.numeric(player1==temp$winner_id))
+# NbrVictPlayer2[i]<-sum(as.numeric(player2==temp$winner_id)) 
+# 
+# 
+# }
 n=5
 ratioPlayer1<-c(rep(-1,nrow(Tennis_table)))
 ratioPlayer2<-c(rep(-1,nrow(Tennis_table)))
@@ -225,24 +225,24 @@ test<-lapply(Tennis_table,sCORE(5,player1_id,player2_id,DateTourney))
 TEST<-Tennis_table[, yo:=lappy(.SD,sum)]
 test_func<-Tennis_table[annee==2017,RateScore:=lapply(.SD,sCORE(5,player1_id,player2_id,DateTourney))]
 
-#Ou alors faire un vecteur ? l'arrache et faire une left join sur player1_id player2_id et tourney_date
+#Ou alors faire un vecteur à l'arrache et faire une left join sur player1_id player2_id et tourney_date
 
-
-Tennis_table[player1==]
-  (sum(case when winner_id=player1 then 1 else 0)/nrow(temp)) as RatioVictPlayer1
-temp2<-sqldf("SELECT    player1_id,
-                        player2_id,
-                        sum(case when winner_id=player1 then 1 else 0) as VictPlayer1,
-                        sum(case when winner_id=player2 then 1 else 0) as VictPlayer2
-
-               from temp;")
+# 
+# Tennis_table[player1==]
+#   (sum(case when winner_id=player1 then 1 else 0)/nrow(temp)) as RatioVictPlayer1
+# temp2<-sqldf("SELECT    player1_id,
+#                         player2_id,
+#                         sum(case when winner_id=player1 then 1 else 0) as VictPlayer1,
+#                         sum(case when winner_id=player2 then 1 else 0) as VictPlayer2
+# 
+#                from temp;")
   #df2.lastname, df1.var1, df2.state FROM df1 INNER JOIN df2 ON df1.personid = df2.id WHERE df2.state = 'TX'")
   #sqldf("SELECT df2.firstname, df2.lastname, df1.var1, df2.state FROM df1 INNER JOIN df2 ON df1.personid = df2.id WHERE df2.state = 'TX'")
   
-}
+#}
 #n derni?res confrontations sur cette surface
 n=7
-ratioPlayer1Surface<-c(rep(0,nrow(Tennis_table)))
+ratioPlayer1Surface<-c(rep(0.5,nrow(Tennis_table)))
 ratioPlayer2Surface<-c(rep(0,nrow(Tennis_table)))
 NbrVictPlayer1Surface<-c(rep(0,nrow(Tennis_table)))
 NbrVictPlayer2Surface<-c(rep(0,nrow(Tennis_table)))
