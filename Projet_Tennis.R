@@ -9,7 +9,7 @@ library(sqldf)
 setwd("C:/Users/Greg/Documents/Certificat Data Science/Projet/BDD/tennis_atp-master")
 setwd("//FRSHARES0250.france.intra.corp/Planif_users/b06713/Data Science ENSAE/Certificat Data Science/tennis_atp-master")
 
-
+#test 2
 #Import et premier retraitement sur le nom des variables
 
 tennis2017<- read.csv(file ='atp_matches_2017.csv' ,header = T)
