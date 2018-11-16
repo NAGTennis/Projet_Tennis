@@ -1,0 +1,183 @@
+---
+title: "Projet Tennis"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+Library 
+```{r}
+#install.packages("data.table")
+library(data.table)
+#install.packages("stringr")
+library(stringr)
+install.packages("sqldf")
+library(sqldf)
+install.packages("knitr")
+library(knitr)
+```
+
+Mis en place de l'environnement de travail
+```{r}
+setwd("C:/Users/Greg/Documents/Certificat Data Science/Projet/BDD/tennis_atp-master")
+#setwd("//FRSHARES0250.france.intra.corp/Planif_users/b06713/Data Science ENSAE/Certificat Data Science/tennis_atp-master")
+knitr::opts_knit$set(root.dir=normalizePath("C:/Users/Greg/Documents/Certificat Data Science/Projet/BDD/tennis_atp-master"))
+knitr::opts_knit$set(root.dir=normalizePath("//FRSHARES0250.france.intra.corp/Planif_users/b06713/Data Science ENSAE/Certificat Data Science/tennis_atp-master"))
+getwd()
+
+```
+
+Import et premier retraitement sur le nom des variables
+```{r}
+tennis2017<- read.csv(file ='atp_matches_2017.csv' ,header = T)
+tennis2016<- read.csv(file ='atp_matches_2016.csv' ,header = T)
+tennis2015<- read.csv(file ='atp_matches_2015.csv' , header = T)
+tennis2014<- read.csv(file ='atp_matches_2014.csv' , header = T)
+tennis2013<- read.csv(file ='atp_matches_2013.csv' , header = T)
+tennis2012<- read.csv(file ='atp_matches_2012.csv' , header = T)
+tennis2011<- read.csv(file ='atp_matches_2011.csv' , header = T)
+tennis2010<- read.csv(file ='atp_matches_2010.csv' , header = T)
+
+Tennis_hist<-read.csv(file='atp_matches.csv', header = T)
+Tennis<-rbind(tennis2017,tennis2016,tennis2015,tennis2014,tennis2013,tennis2012)
+dim(Tennis)
+head(tennis2010)
+atp_players<- read.csv(file ='atp_players.csv' ,header = F)
+
+colnames(atp_players)=c("Player_Id","Prenom","Nom","Main_Forte","DateNaissance","Nationalite")
+
+Rank<- read.csv(file ='atp_rankings_00s.csv' ,
+                      header = F)
+colnames(Rank)<-c("DateRanking","Numero","Player_Id","Points")
+```
+
+Changement du format en data.table
+```{r}
+Tennis_table<-as.data.table(tennis2017)
+Tennis_hist_table<-as.data.table(Tennis_hist)
+Tennis_hist_table[order(tourney_id,tourney_date,match_num),]
+```
+
+Creation d'un RankingRate : permet d'avoir le rang en taux, en fonction du rang 
+le plus haut et du rang le plus bas dans un tournoi
+
+```{r}
+Tennis_table[, ':='(MaxRankPointWin = max(max(winner_rank_points),max(loser_rank_points)),
+                        MinRank=min(max(winner_rank),min(loser_rank)))
+                  ,by=tourney_id]
+Tennis_table[,':='(RankingRateWin=winner_rank_points/MaxRankPointWin,
+                       RankingRateLose=loser_rank_points/MaxRankPointWin)]
+```
+
+Creation du nombre de jeu et du nombre de Set
+comprendre gsub http://www.endmemo.com/program/R/gsub.php 
+```{r}
+Tennis_table[,
+                 ':='(Score_v2=gsub("\\(\\d\\)","",score),
+                      NombreJeu=sum(as.numeric(unlist((str_extract_all(score, "[0-9]+")))))),
+                 by=.(tourney_id, match_num, tourney_date)]
+```
+
+Creation d'un flag abandon => on ne fait pas la distinction entre abandonn? pendant le match 
+et abandonner avant le match, mode du flag ? valider
+```{r}
+Abandon<-gsub("[[:space:]]","",gsub("\\d+","",gsub("[[:punct:]]" ,"",Tennis_table$Score_v2)))
+Abandon
+Abandonv2<-(Abandon != "")
+Abandonv2
+Abandonv3 <-as.numeric(Abandonv2)
+Abandonv3
+
+str(Abandon)
+levels(as.factor(Abandon))
+```
+
+Reorganisation de la table pour que le le winner ait 50% de chance d'être joueur 1/ joueur 2 => avoid sur-apprentissage
+```{r}
+set.seed(123)
+Coin<- round((runif(nrow(Tennis_table),0,1)),0)
+head(Tennis_table)
+
+# !!!!! essayer i in seq_along(Tennis_table) !!!!!
+
+for (i in seq_along(Tennis_table)) {
+  if (Coin[i] == 1) {
+    Tennis_table[i,':='(player1_id=winner_id, player1_seed=winner_seed, player1_entry= winner_entry,player1_name=winner_name,player1_hand=winner_hand,player1_ht=winner_ht,player1_ioc=winner_ioc,
+                            player1_age=winner_age,player1_rank=winner_rank,player1_rank_points=winner_rank_points,
+                            player2_id=loser_id, player2_seed=loser_seed, player2_entry= loser_entry,player2_name=loser_name,player2_hand=loser_hand,player2_ht=loser_ht,player2_ioc=loser_ioc,
+                            player2_age=loser_age,player2_rank=loser_rank,player2_rank_points=loser_rank_points),]
+  }
+if (Coin[i]==0 ){
+  Tennis_table[i, ':='(player2_id=winner_id, player2_seed=winner_seed, player2_entry= winner_entry, player2_name=winner_name,player2_hand=winner_hand,player2_ht=winner_ht,player2_ioc=winner_ioc,
+                           player2_age=winner_age,player2_rank=winner_rank,player2_rank_points=winner_rank_points,
+                           player1_id=loser_id, player1_seed=loser_seed, player1_entry= loser_entry, player1_name=loser_name,player1_hand=loser_hand,player1_ht=loser_ht,player1_ioc=loser_ioc,
+                           player1_age=loser_age,player1_rank=loser_rank,player1_rank_points=loser_rank_points),]
+}
+}
+
+pb<-Tennis_table[is.na(player1_name)]
+head(pb)
+ok<-Tennis_table[!(is.na(player1_name))]
+ok
+```
+
+Retraitement des dates
+```{r}
+
+mode(Tennis_table$tourney_date)
+Tennis_table$tourney_date
+Tennis_table[, tourney_date_char:=as.character(tourney_date)][,':='(annee=substr(tourney_date_char,1,4),
+                                                                     mois=substr(tourney_date_char,5,6),
+                                                                     jour=substr(tourney_date_char,7,nchar(tourney_date_char)))][,]
+Tennis_table[,DateTourney:=as.Date(paste(jour,mois,annee,sep="/"),"%d/%m/%Y")]
+```
+
+n dernières confrontation, reflechir à comment prendre en compte le n compter le nombre de victoire 
+
+```{r}
+n=5
+ratioPlayer1<-c(rep(0,nrow(Tennis_table)))
+ratioPlayer2<-c(rep(0,nrow(Tennis_table)))
+NbrVictPlayer1<-c(rep(0,nrow(Tennis_table)))
+NbrVictPlayer2<-c(rep(0,nrow(Tennis_table)))
+for (i in seq_along(Tennis_table)) {
+  
+  date_i<-Tennis_table$DateTourney[i]
+  player1<-Tennis_table$player1_id[i]
+  player2<-Tennis_table$player2_id[i]
+  
+  temp<-setorder(Tennis_table[(DateTourney<date) & 
+                                ((player1_id==player1 & player2_id ==player2) | (player1_id==player2 & player2_id ==player1))],-DateTourney)[1:n]
+  
+  ratioPlayer1[i]<-mean(as.numeric(player1==temp$winner_id))
+  ratioPlayer2[i]<-mean(as.numeric(player2==temp$winner_id))
+  NbrVictPlayer1[i]<-sum(as.numeric(player1==temp$winner_id))
+  NbrVictPlayer2[i]<-sum(as.numeric(player2==temp$winner_id)) 
+}
+table(ratioPlayer1)
+Tennis_table[,':='(ratioPlayer1=ratioPlayer1,ratioPlayer2=ratioPlayer2,NbrVictPlayer1=NbrVictPlayer1,NbrVictPlayer2=NbrVictPlayer2)]
+
+```
+
+
+
+Varibale a rajouter/creer : 
+Fatigue du joueur -> fonction du nombre de matchs fait ces derniers jours et du nombre de jeux disputés ces derniers temps
+Ranking position -> prendre en compte la position du joueur, faire eventuellement un ratio avec les points
+Très bon serveur ou pas -> influence dans les TieBreak
+Endurant ou pas (exemple s il a tendance a gagné ces matchs en 5 set ou 3 pour les filles)
+Nombre de jeu par match, en cas de Tie break rajouter un jeu suppl?mentaire 
+n derni?res confrontations sur cette surface
+10 derni?res confrontations sur toutes les sufraces 
+Surface de prédilection 
+
+
+
+#sqldf("SELECT df2.firstname, df2.lastname, df1.var1, df2.state FROM df1 INNER JOIN df2 ON df1.personid = df2.id WHERE df2.state = 'TX'")
