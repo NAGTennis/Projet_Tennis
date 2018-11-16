@@ -28,7 +28,7 @@ Mis en place de l'environnement de travail
 ```{r}
 setwd("C:/Users/Greg/Documents/Certificat Data Science/Projet/BDD/tennis_atp-master")
 #setwd("//FRSHARES0250.france.intra.corp/Planif_users/b06713/Data Science ENSAE/Certificat Data Science/tennis_atp-master")
-knitr::opts_knit$set(root.dir=normalizePath("C:/Users/Greg/Documents/Certificat Data Science/Projet/BDD/tennis_atp-master"))
+  knitr::opts_knit$set(root.dir=normalizePath("C:/Users/Greg/Documents/Certificat Data Science/Projet/BDD/tennis_atp-master"))
 knitr::opts_knit$set(root.dir=normalizePath("//FRSHARES0250.france.intra.corp/Planif_users/b06713/Data Science ENSAE/Certificat Data Science/tennis_atp-master"))
 getwd()
 
@@ -142,41 +142,126 @@ Tennis_table[,DateTourney:=as.Date(paste(jour,mois,annee,sep="/"),"%d/%m/%Y")]
 n dernières confrontation, reflechir à comment prendre en compte le n compter le nombre de victoire 
 
 ```{r}
-n=5
-ratioPlayer1<-c(rep(0,nrow(Tennis_table)))
-ratioPlayer2<-c(rep(0,nrow(Tennis_table)))
-NbrVictPlayer1<-c(rep(0,nrow(Tennis_table)))
-NbrVictPlayer2<-c(rep(0,nrow(Tennis_table)))
-for (i in seq_along(Tennis_table)) {
+for (i in 1:nrow(Tennis_table)) {
+
+  date_i<-Tennis_table$DateTourney[i]
+  player1<-Tennis_table$player1_id[i]
+  player2<-Tennis_table$player2_id[i]
+  
+  temp<-setorder(Tennis_table[(DateTourney<date_i) & 
+                                ((player1_id==player1 & player2_id ==player2) |
+                                   (player1_id==player2 & player2_id == player1))] ,-DateTourney)[1:as.numeric(min(n,nrow(temp)))]
+  
+  Nbrmatch[i]<-nrow(temp)
+  ratioPlayer1[i]<-mean(as.numeric(player1==temp$winner_id))
+  ratioPlayer2[i]<-mean(as.numeric(player2==temp$winner_id))
+  NbrVictPlayer1[i]<-sum(as.numeric(player1==temp$winner_id))
+  NbrVictPlayer2[i]<-sum(as.numeric(player2==temp$winner_id)) 
+  
+}
+NbrVictPlayer1
+table(Nbrmatch)
+Nbrmatch==-1
+ratioPlayer1
+NbrVictPlayer1
+
+```
+
+
+```{r}
+n=7
+ratioPlayer1Surface<-c(rep(0.5,nrow(Tennis_table)))
+ratioPlayer2Surface<-c(rep(0,nrow(Tennis_table)))
+NbrVictPlayer1Surface<-c(rep(0,nrow(Tennis_table)))
+NbrVictPlayer2Surface<-c(rep(0,nrow(Tennis_table)))
+ratioPlayer1Surface_<-c(rep(0,nrow(Tennis_table)))
+ratioPlayer2Surface_<-c(rep(0,nrow(Tennis_table)))
+NbrVictPlayer1Surface_<-c(rep(0,nrow(Tennis_table)))
+NbrVictPlayer2Surface_<-c(rep(0,nrow(Tennis_table)))
+for (i in 1:nrow(Tennis_table)) {
+  
+  date_i<-Tennis_table$DateTourney[i]
+  player1<-Tennis_table$player1_id[i]
+  player2<-Tennis_table$player2_id[i]
+  surfaceJeu<-Tennis_table$surface[i]
+  
+  temp1<-setorder(Tennis_table[(DateTourney<date) & (player1_id==player1  | player2_id==player1)
+                               & surface==surfaceJeu],-DateTourney)[1:min(n,nrow(temp1))]
+  temp2<-setorder(Tennis_table[(DateTourney<date) & (player2_id==player2 | player1_id==player2)
+                               & surface==surfaceJeu],-DateTourney)[1:as.numeric(min(n,nrow(temp2)))]
+  
+  ratioPlayer1Surface[i]<-mean(as.numeric(player1==temp1$winner_id))
+  ratioPlayer2Surface[i]<-mean(as.numeric(player2==temp2$winner_id))
+  NbrVictPlayer1Surface[i]<-sum(as.numeric(player1==temp1$winner_id))
+  NbrVictPlayer2Surface[i]<-sum(as.numeric(player2==temp2$winner_id)) 
+  
+  ratioPlayer1Surface_[i]<-mean(as.numeric(player1==temp1$loser_id))
+  ratioPlayer2Surface_[i]<-mean(as.numeric(player2==temp2$loser_id))
+  NbrVictPlayer1Surface_[i]<-sum(as.numeric(player1==temp1$loser_id))
+  NbrVictPlayer2Surface_[i]<-sum(as.numeric(player2==temp2$loser_id)) 
+  
+}
+
+```
+
+```{r}
+
+n=10
+ratioPlayer1last<-c(rep(0,nrow(Tennis_table)))
+ratioPlayer2last<-c(rep(0,nrow(Tennis_table)))
+NbrVictPlayer1last<-c(rep(0,nrow(Tennis_table)))
+NbrVictPlayer2last<-c(rep(0,nrow(Tennis_table)))
+for (i in 1:nrow(Tennis_table)) {
   
   date_i<-Tennis_table$DateTourney[i]
   player1<-Tennis_table$player1_id[i]
   player2<-Tennis_table$player2_id[i]
   
-  temp<-setorder(Tennis_table[(DateTourney<date) & 
-                                ((player1_id==player1 & player2_id ==player2) | (player1_id==player2 & player2_id ==player1))],-DateTourney)[1:n]
+  temp1<-setorder(Tennis_table[(DateTourney<date) & (player1_id==player1 | player2_id==player1)]
+                  ,-DateTourney)[1:as.numeric(min(nrow(temp1),n))]
+  temp2<-setorder(Tennis_table[(DateTourney<date) & (player2_id==player2 | player1_id==player2)]
+                  ,-DateTourney)[1:as.numeric(min(nrow(temp1),n))]
   
-  ratioPlayer1[i]<-mean(as.numeric(player1==temp$winner_id))
-  ratioPlayer2[i]<-mean(as.numeric(player2==temp$winner_id))
-  NbrVictPlayer1[i]<-sum(as.numeric(player1==temp$winner_id))
-  NbrVictPlayer2[i]<-sum(as.numeric(player2==temp$winner_id)) 
-}
-table(ratioPlayer1)
-Tennis_table[,':='(ratioPlayer1=ratioPlayer1,ratioPlayer2=ratioPlayer2,NbrVictPlayer1=NbrVictPlayer1,NbrVictPlayer2=NbrVictPlayer2)]
+  ratioPlayer1last[i]<-mean(as.numeric(player1==temp1$winner_id))
+  ratioPlayer2last[i]<-mean(as.numeric(player2==temp2$winner_id))
+  NbrVictPlayer1last[i]<-sum(as.numeric(player1==temp1$winner_id))
+  NbrVictPlayer2last[i]<-sum(as.numeric(player2==temp2$winner_id)) 
+  
+  # ratioPlayer1last_[i]<-mean(as.numeric(player1==temp1$loser_id))
+  # ratioPlayer2last_[i]<-mean(as.numeric(player2==temp2$loser_id))
+  # NbrVictPlayer1last_[i]<-sum(as.numeric(player1==temp1$loser_id))
+  # NbrVictPlayer2last_[i]<-sum(as.numeric(player2==temp2$loser_id)) 
+  
 
 ```
 
 
+Varibale a rajouter/creer pour les statisiques faire sous 4 formes : générale,selon le head to head, selon le terrain, sur la saison
+Fatigue du joueur -> fonction du nombre de matchs fait ces derniers jours et du nombre de jeux disputés ces derniers temps  Axel
+Caracteristiques des joueurs Axel
+Endurant ou pas (exemple s il a tendance a gagné ces matchs en 5 set ou 3 pour les filles) Axel
+Nombre de jeu par match, en cas de Tie break rajouter un jeu suppl?mentaire Axel
+n derni?res confrontations sur cette surface Greg ok
+10 derni?res confrontations sur toutes les sufraces Greg ok
+n dernière confrontation en head to head GreG ok
+Surface de prédilection Nardjesse
+Nombre de victoires par saison Nardjesse
+Nombre de victoire par saison prec Nardjesse
+Nombre de titre par saison Nardjesse
+Reviens d'un abandon Axel
+Nombre de titre total Nardjesse
+Taux de victoire par tournoi Greg
+Taux de break Greg
 
-Varibale a rajouter/creer : 
-Fatigue du joueur -> fonction du nombre de matchs fait ces derniers jours et du nombre de jeux disputés ces derniers temps
-Ranking position -> prendre en compte la position du joueur, faire eventuellement un ratio avec les points
-Très bon serveur ou pas -> influence dans les TieBreak
-Endurant ou pas (exemple s il a tendance a gagné ces matchs en 5 set ou 3 pour les filles)
-Nombre de jeu par match, en cas de Tie break rajouter un jeu suppl?mentaire 
-n derni?res confrontations sur cette surface
-10 derni?res confrontations sur toutes les sufraces 
-Surface de prédilection 
+Taux de victoire par tournoi
+```{r}
+
+```
+
+Taux de break
+```{r}
+
+```
 
 
 
