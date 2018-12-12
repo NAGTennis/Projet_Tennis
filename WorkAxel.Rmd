@@ -1,0 +1,157 @@
+---
+  title: "Projet Tennis"
+  output: html_notebook
+---
+
+Library 
+```{r}
+#install.packages("data.table")
+library(data.table)
+#install.packages("stringr")
+library(stringr)
+#install.packages("sqldf")
+library(sqldf)
+#install.packages("knitr")
+library(knitr)
+```
+
+Import et premier retraitement sur le nom des variables
+```{r}
+Tennis_hist<-fread(file='Data/atp_matches.csv', header = T)
+#On garde uniquement les lignes où on dispose des informations détaillées de match
+Tennis_table=Tennis_hist[!is.na(minutes)]
+head(Tennis_table)
+
+atp_players<- fread(file ='Data/atp_players.csv' ,header = F)
+colnames(atp_players)=c("Player_Id","Prenom","Nom","Main_Forte","DateNaissance","Nationalite")
+
+Rank<- fread(file ='Data/rankings.csv' , header = F)
+colnames(Rank)<-c("DateRanking","Numero","Player_Id","Points")
+```
+
+
+Varibale a rajouter/creer pour les statistiques faire sous 4 formes : générale,selon le head to head, selon le terrain, sur la saison
+Fatigue du joueur -> fonction du nombre de matchs fait ces derniers jours et du nombre de jeux disputés ces derniers temps
+Caracteristiques des joueurs Axel
+Endurant ou pas (exemple s il a tendance a gagné ces matchs en 5 set ou 3 pour les filles)
+Nombre de jeu par match, en cas de Tie break rajouter un jeu suppl?mentaire -> Fatigue
+Reviens d'un abandon Axel -> Blessure : binaire = 1 si reviens d'un abandon
+
+
+
+Stats joueurs match
+```{r}
+Tennis_table[winner_name=='Alexander Zverev'&loser_name=='Roger Federer'&match_num=='300']
+
+Tennis_table_work=Tennis_table[,.(tourney_id,tourney_name,surface,tourney_date,tourney_level,match_num,
+w_id=winner_id,w_name=winner_name,w_age=winner_age,w_ht=winner_ht,w_rank=winner_rank,w_rank_points=winner_rank_points,w_hand=ifelse(winner_hand=='R',1,0) ,w_seed=winner_seed
+,w_ace=w_ace/w_1stIn,w_df=w_df/w_svpt,w_1stIn=w_1stIn/w_svpt,w_1stWon=w_1stWon/w_1stIn,w_2ndWon=w_2ndWon/(w_svpt-w_1stIn),w_bpSaved=w_bpSaved/w_bpFaced,w_bpMean=l_bpFaced/l_SvGms,w_bpConverted=(l_bpFaced-l_bpSaved)/(l_bpFaced),w_svptWon=(w_1stWon+w_2ndWon)/w_svpt,w_returnPtWon=(l_svpt-l_1stWon-l_2ndWon)/l_svpt,w_1stReturnWon=(l_1stIn-l_1stWon)/l_1stIn,w_2ndReturnWon=((l_svpt-l_1stIn)-l_2ndWon)/(l_svpt-l_1stIn)
+,l_id=loser_id,l_name=loser_name,l_age=loser_age,l_ht=loser_ht,l_rank=loser_rank,l_rank_points=loser_rank_points,l_hand=loser_hand,l_seed=loser_seed
+,l_ace=l_ace/l_1stIn,l_df=l_df/l_svpt,l_1stIn=l_1stIn/l_svpt,l_1stWon=l_1stWon/l_1stIn,l_2ndWon=l_2ndWon/(l_svpt-l_1stIn),l_bpSaved=l_bpSaved/l_bpFaced,l_bpMean=w_bpFaced/w_SvGms,l_bpConverted=(w_bpFaced-w_bpSaved)/(w_bpFaced),l_svptWon=(l_1stWon+l_2ndWon)/l_svpt,l_returnPtWon=(w_svpt-w_1stWon-w_2ndWon)/w_svpt,l_1stReturnWon=(w_1stIn-w_1stWon)/w_1stIn,l_2ndReturnWon=((w_svpt-w_1stIn)-w_2ndWon)/(w_svpt-w_1stIn)
+)]
+
+head(Tennis_table_work)
+
+
+
+```
+
+
+
+
+Creation du nombre de jeu et du nombre de Set
+comprendre gsub http://www.endmemo.com/program/R/gsub.php 
+```{r}
+Tennis_table[,
+':='(Score_v2=gsub("\\(\\d\\)","",score),
+NombreJeu=sum(as.numeric(unlist(str_extract_all(Score_v2, "[0-9]+"))))),
+by=.(tourney_id, match_num, tourney_date)]
+```
+
+Creation d'un flag abandon => on ne fait pas la distinction entre abandonn? pendant le match 
+et abandonner avant le match, mode du flag ? valider
+```{r}
+Abandon<-gsub("[[:space:]]","",gsub("\\d+","",gsub("[[:punct:]]" ,"",Tennis_table$Score_v2)))
+Abandon
+Abandonv2<-(Abandon != "")
+Abandonv2
+Abandonv3 <-as.numeric(Abandonv2)
+Abandonv3
+
+str(Abandon)
+levels(as.factor(Abandon))
+```
+
+Reorganisation de la table pour que le le winner ait 50% de chance d'être joueur 1/ joueur 2 => avoid sur-apprentissage
+```{r}
+set.seed(123)
+Coin<- round((runif(nrow(Tennis_table),0,1)),0)
+head(Tennis_table)
+
+# !!!!! essayer i in seq_along(Tennis_table) !!!!!
+
+for (i in seq_along(Tennis_table)) {
+if (Coin[i] == 1) {
+Tennis_table[i,':='(player1_id=winner_id, player1_seed=winner_seed, player1_entry= winner_entry,player1_name=winner_name,player1_hand=winner_hand,player1_ht=winner_ht,player1_ioc=winner_ioc,
+player1_age=winner_age,player1_rank=winner_rank,player1_rank_points=winner_rank_points,
+player2_id=loser_id, player2_seed=loser_seed, player2_entry= loser_entry,player2_name=loser_name,player2_hand=loser_hand,player2_ht=loser_ht,player2_ioc=loser_ioc,
+player2_age=loser_age,player2_rank=loser_rank,player2_rank_points=loser_rank_points),]
+}
+if (Coin[i]==0 ){
+Tennis_table[i, ':='(player2_id=winner_id, player2_seed=winner_seed, player2_entry= winner_entry, player2_name=winner_name,player2_hand=winner_hand,player2_ht=winner_ht,player2_ioc=winner_ioc,
+player2_age=winner_age,player2_rank=winner_rank,player2_rank_points=winner_rank_points,
+player1_id=loser_id, player1_seed=loser_seed, player1_entry= loser_entry, player1_name=loser_name,player1_hand=loser_hand,player1_ht=loser_ht,player1_ioc=loser_ioc,
+player1_age=loser_age,player1_rank=loser_rank,player1_rank_points=loser_rank_points),]
+}
+}
+
+pb<-Tennis_table[is.na(player1_name)]
+head(pb)
+ok<-Tennis_table[!(is.na(player1_name))]
+ok
+```
+
+Retraitement des dates
+```{r}
+mode(Tennis_table$tourney_date)
+Tennis_table$tourney_date
+Tennis_table[, tourney_date_char:=as.character(tourney_date)][,':='(annee=substr(tourney_date_char,1,4),
+mois=substr(tourney_date_char,5,6),
+jour=substr(tourney_date_char,7,nchar(tourney_date_char)))][,]
+Tennis_table[,DateTourney:=as.Date(paste(jour,mois,annee,sep="/"),"%d/%m/%Y")]
+```
+
+n dernières confrontation, reflechir à comment prendre en compte le n compter le nombre de victoire 
+
+```{r}
+n=5
+ratioPlayer1<-c(rep(0,nrow(Tennis_table)))
+ratioPlayer2<-c(rep(0,nrow(Tennis_table)))
+NbrVictPlayer1<-c(rep(0,nrow(Tennis_table)))
+NbrVictPlayer2<-c(rep(0,nrow(Tennis_table)))
+for (i in seq_along(Tennis_table)) {
+
+date_i<-Tennis_table$DateTourney[i]
+player1<-Tennis_table$player1_id[i]
+player2<-Tennis_table$player2_id[i]
+
+temp<-setorder(Tennis_table[(DateTourney<date) & 
+((player1_id==player1 & player2_id ==player2) | (player1_id==player2 & player2_id ==player1))],-DateTourney)[1:n]
+
+ratioPlayer1[i]<-mean(as.numeric(player1==temp$winner_id))
+ratioPlayer2[i]<-mean(as.numeric(player2==temp$winner_id))
+NbrVictPlayer1[i]<-sum(as.numeric(player1==temp$winner_id))
+NbrVictPlayer2[i]<-sum(as.numeric(player2==temp$winner_id)) 
+}
+table(ratioPlayer1)
+Tennis_table[,':='(ratioPlayer1=ratioPlayer1,ratioPlayer2=ratioPlayer2,NbrVictPlayer1=NbrVictPlayer1,NbrVictPlayer2=NbrVictPlayer2)]
+
+```
+
+
+
+
+
+
+
+#sqldf("SELECT df2.firstname, df2.lastname, df1.var1, df2.state FROM df1 INNER JOIN df2 ON df1.personid = df2.id WHERE df2.state = 'TX'")

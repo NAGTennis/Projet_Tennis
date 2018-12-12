@@ -1,0 +1,49 @@
+tourney_id;Identifiant ID
+tourney_name;Nom du tournoi
+surface;Surface de jeu
+draw_size;Nombre de joueurs du tournoi
+tourney_level;Niveau du tournoi
+tourney_date;Date du match
+match_num;Num du match
+winner_id;Identifiant
+winner_seed;Tête de série
+winner_entry;Mode d'accès au tournoi
+winner_name;Nombre
+winner_hand;Gaucher/droitier
+winner_ht;Taille
+winner_ioc;Nationnalité
+winner_age;Age
+winner_rank;Classement ATP
+winner_rank_points;Points ATP
+loser_id;Identifiant
+loser_seed;Tête de série
+loser_entry;Mode d'accès au tournoi
+loser_name;Nombre
+loser_hand;Gaucher/droitier
+loser_ht;Taille
+loser_ioc;Nationnalité
+loser_age;Age
+loser_rank;Classement ATP
+loser_rank_points;Points ATP
+score;Scores
+best_of;Nombre de sets
+round;Round du match
+minutes;Temps de jeu
+w_ace;Nombres d'aces
+w_df;Double faute
+w_svpt;Point de service
+w_1stIn;1er service réussi 
+w_1stWon;1er service gagné
+w_2ndWon;2e service gagné
+w_SvGms;Nombre de jeux au service
+w_bpSaved;Break point sauvé
+w_bpFaced;Break point rencontré
+l_ace;Nombres d'aces
+l_df;Double faute
+l_svpt;Point de service
+l_1stIn;1er service réussi 
+l_1stWon;1er service gagné
+l_2ndWon;2e service gagné
+l_SvGms;Nombre de jeux au service
+l_bpSaved;Break point sauvé
+l_bpFaced;Break point rencontré

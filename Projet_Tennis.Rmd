@@ -18,62 +18,51 @@ Library
 library(data.table)
 #install.packages("stringr")
 library(stringr)
-install.packages("sqldf")
+#install.packages("sqldf")
 library(sqldf)
-install.packages("knitr")
+#install.packages("knitr")
 library(knitr)
 ```
 
-Mis en place de l'environnement de travail
+Mis en place de l'environnement de travail (Plus besoin avec le projet)
 ```{r}
-setwd("C:/Users/Greg/Documents/Certificat Data Science/Projet/BDD/tennis_atp-master")
-#setwd("//FRSHARES0250.france.intra.corp/Planif_users/b06713/Data Science ENSAE/Certificat Data Science/tennis_atp-master")
-knitr::opts_knit$set(root.dir=normalizePath("C:/Users/Greg/Documents/Certificat Data Science/Projet/BDD/tennis_atp-master"))
-knitr::opts_knit$set(root.dir=normalizePath("//FRSHARES0250.france.intra.corp/Planif_users/b06713/Data Science ENSAE/Certificat Data Science/tennis_atp-master"))
-getwd()
-
+# setwd("C:/Users/Greg/Documents/Certificat Data Science/Projet/BDD/tennis_atp-master")
+# #setwd("//FRSHARES0250.france.intra.corp/Planif_users/b06713/Data Science ENSAE/Certificat Data Science/tennis_atp-master")
+# knitr::opts_knit$set(root.dir=normalizePath("C:/Users/Greg/Documents/Certificat Data Science/Projet/BDD/tennis_atp-master"))
+# knitr::opts_knit$set(root.dir=normalizePath("//FRSHARES0250.france.intra.corp/Planif_users/b06713/Data Science ENSAE/Certificat Data Science/tennis_atp-master"))
+# getwd()
 ```
 
 Import et premier retraitement sur le nom des variables
 ```{r}
-tennis2017<- read.csv(file ='atp_matches_2017.csv' ,header = T)
-tennis2016<- read.csv(file ='atp_matches_2016.csv' ,header = T)
-tennis2015<- read.csv(file ='atp_matches_2015.csv' , header = T)
-tennis2014<- read.csv(file ='atp_matches_2014.csv' , header = T)
-tennis2013<- read.csv(file ='atp_matches_2013.csv' , header = T)
-tennis2012<- read.csv(file ='atp_matches_2012.csv' , header = T)
-tennis2011<- read.csv(file ='atp_matches_2011.csv' , header = T)
-tennis2010<- read.csv(file ='atp_matches_2010.csv' , header = T)
+Tennis_hist<-fread(file='Data/atp_matches.csv', header = T)
+#On garde uniquement les lignes où on dispose des informations détaillées de match
+Tennis_hist_propre=Tennis_hist[!is.na(minutes)]
+head(Tennis_hist_propre)
 
-Tennis_hist<-read.csv(file='atp_matches.csv', header = T)
-Tennis<-rbind(tennis2017,tennis2016,tennis2015,tennis2014,tennis2013,tennis2012)
-dim(Tennis)
-head(tennis2010)
-atp_players<- read.csv(file ='atp_players.csv' ,header = F)
-
+atp_players<- fread(file ='Data/atp_players.csv' ,header = F)
 colnames(atp_players)=c("Player_Id","Prenom","Nom","Main_Forte","DateNaissance","Nationalite")
 
-Rank<- read.csv(file ='atp_rankings_00s.csv' ,
-                      header = F)
+Rank<- fread(file ='Data/rankings.csv' , header = F)
 colnames(Rank)<-c("DateRanking","Numero","Player_Id","Points")
 ```
 
-Changement du format en data.table
+Changement du format en data.table (inutile : utiliser directement fread)
 ```{r}
-Tennis_table<-as.data.table(tennis2017)
-Tennis_hist_table<-as.data.table(Tennis_hist)
-Tennis_hist_table[order(tourney_id,tourney_date,match_num),]
+# Tennis_table<-as.data.table(tennis2017)
+# Tennis_hist_table<-as.data.table(Tennis_hist)
+# Tennis_hist_table[order(tourney_id,tourney_date,match_num),]
 ```
 
 Creation d'un RankingRate : permet d'avoir le rang en taux, en fonction du rang 
 le plus haut et du rang le plus bas dans un tournoi
 
 ```{r}
-Tennis_table[, ':='(MaxRankPointWin = max(max(winner_rank_points),max(loser_rank_points)),
-                        MinRank=min(max(winner_rank),min(loser_rank)))
-                  ,by=tourney_id]
-Tennis_table[,':='(RankingRateWin=winner_rank_points/MaxRankPointWin,
-                       RankingRateLose=loser_rank_points/MaxRankPointWin)]
+# Tennis_table[, ':='(MaxRankPointWin = max(max(winner_rank_points),max(loser_rank_points)),
+#                         MinRank=min(max(winner_rank),min(loser_rank)))
+#                   ,by=tourney_id]
+# Tennis_table[,':='(RankingRateWin=winner_rank_points/MaxRankPointWin,
+#                        RankingRateLose=loser_rank_points/MaxRankPointWin)]
 ```
 
 Creation du nombre de jeu et du nombre de Set
