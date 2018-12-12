@@ -37,8 +37,8 @@ Import et premier retraitement sur le nom des variables
 ```{r}
 Tennis_hist<-fread(file='Data/atp_matches.csv', header = T)
 #On garde uniquement les lignes où on dispose des informations détaillées de match
-Tennis_hist_propre=Tennis_hist[!is.na(minutes)]
-head(Tennis_hist_propre)
+Tennis_table=Tennis_hist[!is.na(minutes)]
+head(Tennis_Table)
 
 atp_players<- fread(file ='Data/atp_players.csv' ,header = F)
 colnames(atp_players)=c("Player_Id","Prenom","Nom","Main_Forte","DateNaissance","Nationalite")
@@ -70,7 +70,7 @@ comprendre gsub http://www.endmemo.com/program/R/gsub.php
 ```{r}
 Tennis_table[,
                  ':='(Score_v2=gsub("\\(\\d\\)","",score),
-                      NombreJeu=sum(as.numeric(unlist((str_extract_all(score, "[0-9]+")))))),
+                      NombreJeu=sum(as.numeric(unlist(str_extract_all(Score_v2, "[0-9]+"))))),
                  by=.(tourney_id, match_num, tourney_date)]
 ```
 
