@@ -71,10 +71,10 @@ Fonction d'historique
 ####i_duree = Durée en jours d'historique à prendre en compte
 f_historique <- function(Tennis_table_work,i_name,i_date=NULL,i_surface=NULL,i_tournament=NULL,i_opponent=NULL,i_row=NULL,i_duree=NULL) {
   historique=rbind(Tennis_table_work[w_name==i_name,.(tourney_date,tourney_name,surface,opponent=l_name,ace=w_ace,df=w_df,stIn=w_1stIn,stWon=w_1stWon,ndWon=w_2ndWon,bpSaved=w_bpSaved,bpMean=w_bpMean,bpConverted=w_bpConverted,svptWon=w_svptWon,returnPtWon=w_returnPtWon,stReturnWon=w_1stReturnWon,ndReturnWon=w_2ndReturnWon)][order(-tourney_date)],
-  Tennis_table_work[l_name==i_name,.(tourney_date,tourney_name,surface,opponent=w_name,ace=l_ace,df=l_df,stIn=l_1stIn,stWon=l_1stWon,ndWon=l_2ndWon,bpSaved=l_bpSaved,bpMean=l_bpMean,bpConverted=l_bpConverted,svptWon=l_svptWon,returnPtWon=l_returnPtWon,stReturnWon=l_1stReturnWon,ndReturnWon=l_2ndReturnWon)][order(-tourney_date)])
+  Tennis_table_work[l_name==i_name,.(tourney_date,tourney_name,surface,opponent=w_name,ace=l_ace,df=l_df,stIn=l_1stIn,stWon=l_1stWon,ndWon=l_2ndWon,bpSaved=l_bpSaved,bpMean=l_bpMean,bpConverted=l_bpConverted,svptWon=l_svptWon,returnPtWon=l_returnPtWon,stReturnWon=l_1stReturnWon,ndReturnWon=l_2ndReturnWon)])[order(-tourney_date)]
   
   if (!is.null(i_date)) {historique=historique[tourney_date<anydate(i_date)]}
-  if ((!is.null(i_date))&(!is.null(i_duree))) {historique=historique[difftime(anydate(i_date),tourney_date,'month')<=i_duree]}
+  if ((!is.null(i_date))&(!is.null(i_duree))) {historique=historique[difftime(anydate(i_date),tourney_date)<=i_duree]}
   if (!is.null(i_surface)) {historique=historique[surface==i_surface]}
   if (!is.null(i_tournament)) {historique=historique[tourney_name==i_tournament]}
   if (!is.null(i_opponent)) {historique=historique[opponent==i_opponent]}
@@ -98,7 +98,7 @@ f_historique(Tennis_table_work,i_name=i_name,i_opponent=i_opponent,i_tournament 
 Stats joueurs match
 Attention : 557 match avec svgms=0 !!!
 ```{r}
-head(Tennis_table_work)
+
 
 ```
 
@@ -108,10 +108,50 @@ head(Tennis_table_work)
 Creation du nombre de jeu et du nombre de Set
 comprendre gsub http://www.endmemo.com/program/R/gsub.php 
 ```{r}
-Tennis_table[,
-':='(Score_v2=gsub("\\(\\d\\)","",score),
-NombreJeu=sum(as.numeric(unlist(str_extract_all(Score_v2, "[0-9]+"))))),
-by=.(tourney_id, match_num, tourney_date)]
+
+
+Tennis_table[,.(score,base::sum(as.numeric(unlist(str_extract_all(gsub("\\(\\d\\)","",score), "[0-9]+"))))),by=c(colnames(Tennis_table))]
+
+#Sortir le calcul du nombre de jeux pour alléger le calcul
+f_fatigue <- function(Tennis_table_work,i_name,i_date,i_duree) {
+  
+  historique=rbind(Tennis_table_work[winner_name==i_name,.(tourney_date,scorenum=sum(as.numeric(unlist(str_extract_all(gsub("\\(\\d\\)","",score), "[0-9]+")))),minutes),by=c(colnames(Tennis_table_work))],
+  Tennis_table_work[loser_name==i_name,.(tourney_date,scorenum=sum(as.numeric(unlist(str_extract_all(gsub("\\(\\d\\)","",score), "[0-9]+")))),minutes),by=c(colnames(Tennis_table_work))])[anydate(i_date)>anydate(tourney_date)][difftime(anydate(i_date),anydate(tourney_date))<=i_duree]
+  
+  Historique_Sum=historique[,.(scorenum,minutes)][,lapply(.SD, function(x) sum(na.omit(x[is.finite(x)])))]
+  
+  return(Historique_Sum)
+}
+
+i_name='Borna Coric';i_date='20180305';i_duree=365;
+
+historique=rbind(Tennis_table[winner_name==i_name,.(tourney_date,banana=difftime(anydate(i_date),anydate(tourney_date)),scorenum=sum(as.numeric(unlist(str_extract_all(gsub("\\(\\d\\)","",score), "[0-9]+")))),minutes),by=c(colnames(Tennis_table))],
+  Tennis_table[loser_name==i_name,.(tourney_date,banana=difftime(anydate(i_date),anydate(tourney_date)),scorenum=sum(as.numeric(unlist(str_extract_all(gsub("\\(\\d\\)","",score), "[0-9]+")))),minutes),by=c(colnames(Tennis_table))])[(anydate(i_date)>anydate(tourney_date))][difftime(anydate(i_date),anydate(tourney_date))<=i_duree]
+historique
+historique[,.(scorenum,minutes)][,lapply(.SD, function(x) sum(na.omit(x[is.finite(x)])))]
+
+f_fatigue(Tennis_table,i_name,i_date,100)[,scorenum]
+
+start_time <- Sys.time()
+Table_Fatigue=Tennis_table[,.(fatigue=(f_fatigue(Tennis_table,winner_name,tourney_date,7)[,scorenum]-f_fatigue(Tennis_table,loser_name,tourney_date,7)[,scorenum])),by=c(colnames(Tennis_table))]
+end_time <- Sys.time()
+time=end_time - start_time
+
+nrow(Table_Fatigue[fatigue>0])
+nrow(Table_Fatigue[fatigue<0])
+Tennis_table[tourney_date>'20180301',.(tourney_id,match_num,fatigue=f_fatigue(Tennis_table[tourney_date>'20180301'],winner_name,tourney_date,100)[,scorenum])]
+Tennis_table[tourney_date>'20180301',.(fatigue=f_fatigue(Tennis_table[tourney_date>'20180301'],winner_name,tourney_date,100)[,scorenum]),by=.(winner_name,tourney_date)]
+Tennis_table[tourney_date>'20180301',.(tourney_id,match_num,fatigue=f_fatigue(Tennis_table[tourney_date>'20180301'],winner_name,tourney_date,100)[,scorenum]),by=.()]
+
+for (i in 1:10) {
+  name=Tennis_table[tourney_date>'20180301'][i,winner_name]
+  date=Tennis_table[tourney_date>'20180301'][i,tourney_date]
+  print(f_fatigue(Tennis_table,name,date,100)[,scorenum])
+}
+name
+date
+f_fatigue(Tennis_table,"Borna Coric","20180305",100)
+Tennis_table[winner_name=="Borna Coric"]
 ```
 
 Creation d'un flag abandon => on ne fait pas la distinction entre abandonn? pendant le match 
