@@ -74,6 +74,7 @@ f_historique <- function(Tennis_table_work,i_name,i_date=NULL,i_surface=NULL,i_t
   Tennis_table_work[l_name==i_name,.(tourney_date,tourney_name,surface,opponent=w_name,ace=l_ace,df=l_df,stIn=l_1stIn,stWon=l_1stWon,ndWon=l_2ndWon,bpSaved=l_bpSaved,bpMean=l_bpMean,bpConverted=l_bpConverted,svptWon=l_svptWon,returnPtWon=l_returnPtWon,stReturnWon=l_1stReturnWon,ndReturnWon=l_2ndReturnWon)])[order(-tourney_date)]
   
   if (!is.null(i_date)) {historique=historique[tourney_date<anydate(i_date)]}
+  #AJOUTER match_num<match_num ou round<i_round pour les tourney_date=i_date
   if ((!is.null(i_date))&(!is.null(i_duree))) {historique=historique[difftime(anydate(i_date),tourney_date)<=i_duree]}
   if (!is.null(i_surface)) {historique=historique[surface==i_surface]}
   if (!is.null(i_tournament)) {historique=historique[tourney_name==i_tournament]}
@@ -247,6 +248,39 @@ f_retour_abandon <- function(Tennis_table, i_name, i_date) {
 i_name='Rafael Nadal'; i_date='20180101'
 Tennis_table[(winner_name==i_name|loser_name==i_name)][tourney_date<i_date][head(order(-tourney_date,-match_num),1)]
 f_retour_abandon(Tennis_table,i_name,i_date)==1
+```
+```{R}
+sqldf(
+  "
+  SELECT b.round, count(*)
+FROM (
+  SELECT tourney_name
+        ,tourney_date
+        ,max(match_num) max_match
+  FROM Tennis_table
+  WHERE tourney_date<'20180101'
+  GROUP BY tourney_name
+        ,tourney_date
+) as a
+LEFT JOIN Tennis_table as b ON a.tourney_name=b.tourney_name AND a.tourney_date=b.tourney_date AND a.max_match=b.match_num
+  GROUP BY b.round"
+)
+sqldf(
+  "
+  SELECT *
+FROM (
+  SELECT tourney_name
+        ,tourney_date
+        ,max(match_num) max_match
+  FROM Tennis_table
+  WHERE tourney_date<'20180101'
+  GROUP BY tourney_name
+        ,tourney_date
+) as a
+LEFT JOIN Tennis_table as b ON a.tourney_name=b.tourney_name AND a.tourney_date=b.tourney_date AND a.max_match=b.match_num
+WHERE b.round<>'F'"
+)
+Tennis_table[tourney_name=='Indian Wells Masters'&tourney_date=='19960311']
 ```
 
 Reorganisation de la table pour que le le winner ait 50% de chance d'être joueur 1/ joueur 2 => avoid sur-apprentissage
