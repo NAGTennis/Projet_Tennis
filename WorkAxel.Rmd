@@ -112,33 +112,47 @@ comprendre gsub http://www.endmemo.com/program/R/gsub.php
 
 Tennis_table[,.(score,base::sum(as.numeric(unlist(str_extract_all(gsub("\\(\\d\\)","",score), "[0-9]+"))))),by=c(colnames(Tennis_table))]
 
-#Sortir le calcul du nombre de jeux pour alléger le calcul
+#### Calcul le nombre de jeux à partir du score
+### Variable obligatoire :
+####Tennis_table_work = table d'historique des matchs
+####score = Nom de la variable de score
+f_NombreDeJeu <- function(Tennis_table_work,score) {
+  return(Tennis_table_work[,.(NbJeuJoue=sum(as.numeric(unlist(str_extract_all(gsub("\\(\\d\\)","",score), "[0-9]+"))))),by=c(colnames(Tennis_table_work))])
+}
+Tennis_table_work_test=f_NombreDeJeu(Tennis_table,"score")
+
+#### Calcul le nombre de jeux précdemment joués (ou le temps)
+### Variable obligatoire :
+####Tennis_table_work = table d'historique des matchs
+####i_name = Nom du joueur
+####i_date = Date de calcul
+####i_duree = Duree à prendre en compte
 f_fatigue <- function(Tennis_table_work,i_name,i_date,i_duree) {
+  historique=rbind(Tennis_table_work[winner_name==i_name],
+  Tennis_table_work[loser_name==i_name])[anydate(i_date)>anydate(tourney_date)][difftime(anydate(i_date),anydate(tourney_date))<=i_duree]
   
-  historique=rbind(Tennis_table_work[winner_name==i_name,.(tourney_date,scorenum=sum(as.numeric(unlist(str_extract_all(gsub("\\(\\d\\)","",score), "[0-9]+")))),minutes),by=c(colnames(Tennis_table_work))],
-  Tennis_table_work[loser_name==i_name,.(tourney_date,scorenum=sum(as.numeric(unlist(str_extract_all(gsub("\\(\\d\\)","",score), "[0-9]+")))),minutes),by=c(colnames(Tennis_table_work))])[anydate(i_date)>anydate(tourney_date)][difftime(anydate(i_date),anydate(tourney_date))<=i_duree]
-  
-  Historique_Sum=historique[,.(scorenum,minutes)][,lapply(.SD, function(x) sum(na.omit(x[is.finite(x)])))]
+  Historique_Sum=historique[,.(NbJeuJoue,minutes)][,lapply(.SD, function(x) sum(na.omit(x[is.finite(x)])))]
   
   return(Historique_Sum)
 }
-
+```
+TESTS FATIGUES
+```{r}
+##################TESTS
 i_name='Borna Coric';i_date='20180305';i_duree=365;
 
-historique=rbind(Tennis_table[winner_name==i_name,.(tourney_date,banana=difftime(anydate(i_date),anydate(tourney_date)),scorenum=sum(as.numeric(unlist(str_extract_all(gsub("\\(\\d\\)","",score), "[0-9]+")))),minutes),by=c(colnames(Tennis_table))],
-  Tennis_table[loser_name==i_name,.(tourney_date,banana=difftime(anydate(i_date),anydate(tourney_date)),scorenum=sum(as.numeric(unlist(str_extract_all(gsub("\\(\\d\\)","",score), "[0-9]+")))),minutes),by=c(colnames(Tennis_table))])[(anydate(i_date)>anydate(tourney_date))][difftime(anydate(i_date),anydate(tourney_date))<=i_duree]
-historique
-historique[,.(scorenum,minutes)][,lapply(.SD, function(x) sum(na.omit(x[is.finite(x)])))]
+Tennis_table_NbJeux=f_NombreDeJeu(Tennis_table,"score")
 
-f_fatigue(Tennis_table,i_name,i_date,100)[,scorenum]
+f_fatigue(Tennis_table_NbJeux,i_name,i_date,100)[,NbJeuJoue]
 
 start_time <- Sys.time()
-Table_Fatigue=Tennis_table[,.(fatigue=(f_fatigue(Tennis_table,winner_name,tourney_date,7)[,scorenum]-f_fatigue(Tennis_table,loser_name,tourney_date,7)[,scorenum])),by=c(colnames(Tennis_table))]
+Table_Fatigue=Tennis_table_NbJeux[,.(fatigue=(f_fatigue(Tennis_table_NbJeux,winner_name,tourney_date,3)[,NbJeuJoue]-f_fatigue(Tennis_table_NbJeux,loser_name,tourney_date,3)[,NbJeuJoue])),by=c(colnames(Tennis_table_NbJeux))]
 end_time <- Sys.time()
 time=end_time - start_time
 
-nrow(Table_Fatigue[fatigue>0])
-nrow(Table_Fatigue[fatigue<0])
+Table_Fatigue[tourney_id=='2001-520']
+nrow(Table_Fatigue[fatigue>0])/nrow(Table_Fatigue[fatigue!=0])
+nrow(Table_Fatigue[fatigue<0])/nrow(Table_Fatigue[fatigue!=0])
 Tennis_table[tourney_date>'20180301',.(tourney_id,match_num,fatigue=f_fatigue(Tennis_table[tourney_date>'20180301'],winner_name,tourney_date,100)[,scorenum])]
 Tennis_table[tourney_date>'20180301',.(fatigue=f_fatigue(Tennis_table[tourney_date>'20180301'],winner_name,tourney_date,100)[,scorenum]),by=.(winner_name,tourney_date)]
 Tennis_table[tourney_date>'20180301',.(tourney_id,match_num,fatigue=f_fatigue(Tennis_table[tourney_date>'20180301'],winner_name,tourney_date,100)[,scorenum]),by=.()]
@@ -154,18 +168,85 @@ f_fatigue(Tennis_table,"Borna Coric","20180305",100)
 Tennis_table[winner_name=="Borna Coric"]
 ```
 
+Gros problème de dates des matchs absente
+```{R}
+Tennis_table[tourney_name=='Us Open'&tourney_date>='20180801'&winner_name=='Rafael Nadal']
+Tennis_table[tourney_date>'20000101',length(gregexpr(" ",winner_name)[[1]]),by=winner_name][,.N,by=V1]
+Tennis_table[winner_name=='Arnaud Di Pasquale']
+install.packages("readxl")
+library("readxl")
+
+nrow(Tennis_table[tourney_date>'20030101'])
+
+Tmp_Data_Date=rbind(data.table(read_excel("Data/Dates/2003.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
+,data.table(read_excel("Data/Dates/2004.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
+,data.table(read_excel("Data/Dates/2005.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
+,data.table(read_excel("Data/Dates/2006.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
+,data.table(read_excel("Data/Dates/2007.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
+,data.table(read_excel("Data/Dates/2008.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
+,data.table(read_excel("Data/Dates/2009.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
+,data.table(read_excel("Data/Dates/2010.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
+,data.table(read_excel("Data/Dates/2011.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
+,data.table(read_excel("Data/Dates/2012.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
+,data.table(read_excel("Data/Dates/2013.xlsx"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
+,data.table(read_excel("Data/Dates/2014.xlsx"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
+,data.table(read_excel("Data/Dates/2015.xlsx"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
+,data.table(read_excel("Data/Dates/2016.xlsx"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
+,data.table(read_excel("Data/Dates/2017.xlsx"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
+,data.table(read_excel("Data/Dates/2018.xlsx"))[,.(Tournament,Date,Surface,Round,Winner,Loser)])
+
+Tennis_table[winner_name=='Arnaud Di Pasquale']
+
+str_locate('Arnaud Di Pasquale', ' ')
+paste(substr('Arnaud Di Pasquale',str_locate('Arnaud Di Pasquale', ' ')+1,nchar('Arnaud Di Pasquale')),paste(substr(substr('Arnaud Di Pasquale',0 ,str_locate('Arnaud Di Pasquale', ' ')-1),0,1),'.', sep=''),sep=' ')
+
+Tennis_table[,Winner_NameSmall:=paste(substr(winner_name,str_locate(winner_name, ' ')+1,nchar(winner_name)),paste(substr(substr(winner_name,0 ,str_locate(winner_name, ' ')-1),0,1),'.', sep=''),sep=' ')]
+Tennis_table[,Loser_NameSmall:=paste(substr(loser_name,str_locate(loser_name, ' ')+1,nchar(loser_name)),paste(substr(substr(loser_name,0 ,str_locate(loser_name, ' ')-1),0,1),'.', sep=''),sep=' ')]
+
+merge(Tennis_table,Tmp_Data_Date,by.x=c("tourney_name","surface","Winner_NameSmall","Loser_NameSmall"),by.y=c("Tournament", "Surface", "Winner", "Loser"))
+merge(Tennis_table,Tmp_Data_Date,by.x=c("tourney_name"),by.y=c("Tournament"))
+
+Tmp_Data_Date[,Tournament,by=Tournament]
+sqldf(
+  "SELECT tourney_name, Tournament
+  FROM
+  (SELECT tourney_name FROM Tennis_table GROUP BY tourney_name) as a
+  LEFT JOIN 
+  (SELECT Tournament,min(Date) as DateMin FROM Tmp_Data_Date GROUP BY Tournament) as b ON a.tourney_name=b.Tournament
+  
+  "
+)
+sqldf(
+  "SELECT tourney_name, Tournament
+  FROM
+  (SELECT Tournament FROM Tmp_Data_Date GROUP BY Tournament) as a
+  LEFT JOIN 
+  (SELECT tourney_name FROM Tennis_table GROUP BY tourney_name) as b ON b.tourney_name=a.Tournament
+  "
+)
+```
+
 Creation d'un flag abandon => on ne fait pas la distinction entre abandonn? pendant le match 
 et abandonner avant le match, mode du flag ? valider
 ```{r}
-Abandon<-gsub("[[:space:]]","",gsub("\\d+","",gsub("[[:punct:]]" ,"",Tennis_table$Score_v2)))
+Abandon<-gsub("[[:space:]]","",gsub("\\d+","",gsub("[[:punct:]]" ,"",Tennis_table$score)))
 Abandon
-Abandonv2<-(Abandon != "")
-Abandonv2
-Abandonv3 <-as.numeric(Abandonv2)
-Abandonv3
+Abandonv2<-gsub("[^A-Za-z]","",Tennis_table$score)
 
-str(Abandon)
-levels(as.factor(Abandon))
+####Ajoute à Tennis_Table la colonne abandon (0 ou 1)
+f_abandon <- function (Tennis_table,score) {
+  return(Tennis_table[,abandon:=ifelse(gsub("[^A-Za-z]","",score)!="",1,0)])
+}
+f_abandon(Tennis_table,"score")
+
+#### Renvoie si le joueur i_name est de retour d'abandon à la date i_date
+f_retour_abandon <- function(Tennis_table, i_name, i_date) {
+  return(Tennis_table[(winner_name==i_name|loser_name==i_name)][tourney_date<i_date][head(order(-tourney_date,-match_num),1),c(ifelse(abandon==1&loser_name==i_name,1,0))])
+}
+
+i_name='Rafael Nadal'; i_date='20180101'
+Tennis_table[(winner_name==i_name|loser_name==i_name)][tourney_date<i_date][head(order(-tourney_date,-match_num),1)]
+f_retour_abandon(Tennis_table,i_name,i_date)==1
 ```
 
 Reorganisation de la table pour que le le winner ait 50% de chance d'être joueur 1/ joueur 2 => avoid sur-apprentissage
