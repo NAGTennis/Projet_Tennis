@@ -42,7 +42,7 @@ Reviens d'un abandon Axel -> Blessure : binaire = 1 si reviens d'un abandon
 Transformation de la table tennis : Valeurs -> pourcentages
 ```{r}
 #Creation de Tennis_table_work
-Tennis_table_work=Tennis_table[,.(tourney_id,tourney_name,surface,tourney_date=anydate(tourney_date),tourney_level,match_num,
+Tennis_table_work=Tennis_table[,.(tourney_id,tourney_name,surface,tourney_date=anydate(tourney_date),tourney_level,match_num,round,round_num=data.table(V1=c('F','SF','QF','R16','R32','R64','R128','RR','BR'),V2=1:9)$V2[match(round,data.table(V1=c('F','SF','QF','R16','R32','R64','R128','RR','BR'),V2=1:9)$V1)],
 w_id=winner_id,w_name=winner_name,w_age=winner_age,w_ht=winner_ht,w_rank=winner_rank,w_rank_points=winner_rank_points,w_hand=ifelse(winner_hand=='R',1,0) ,w_seed=winner_seed
 ,w_ace=w_ace/w_1stIn,w_df=w_df/w_svpt,w_1stIn=w_1stIn/w_svpt,w_1stWon=w_1stWon/w_1stIn,w_2ndWon=w_2ndWon/(w_svpt-w_1stIn),w_bpSaved=w_bpSaved/w_bpFaced,w_bpMean=l_bpFaced/l_SvGms,w_bpConverted=(l_bpFaced-l_bpSaved)/(l_bpFaced),w_svptWon=(w_1stWon+w_2ndWon)/w_svpt,w_returnPtWon=(l_svpt-l_1stWon-l_2ndWon)/l_svpt,w_1stReturnWon=(l_1stIn-l_1stWon)/l_1stIn,w_2ndReturnWon=((l_svpt-l_1stIn)-l_2ndWon)/(l_svpt-l_1stIn)
 ,l_id=loser_id,l_name=loser_name,l_age=loser_age,l_ht=loser_ht,l_rank=loser_rank,l_rank_points=loser_rank_points,l_hand=loser_hand,l_seed=loser_seed
@@ -69,11 +69,11 @@ Fonction d'historique
 ####i_opponent = Nom de l'opposant -> 'Raphael Nadal'|'Roger Federer'|'Alexander Zverev'
 ####i_row = Nombre de matchs à prendre en compte
 ####i_duree = Durée en jours d'historique à prendre en compte
-f_historique <- function(Tennis_table_work,i_name,i_date=NULL,i_surface=NULL,i_tournament=NULL,i_opponent=NULL,i_row=NULL,i_duree=NULL) {
+f_historique <- function(Tennis_table_work,i_name,i_date=NULL,i_surface=NULL,i_tournament=NULL,i_opponent=NULL,i_row=NULL,i_duree=NULL, i_round=NULL, i_matchnum=NULL) {
   historique=rbind(Tennis_table_work[w_name==i_name,.(tourney_date,tourney_name,surface,opponent=l_name,ace=w_ace,df=w_df,stIn=w_1stIn,stWon=w_1stWon,ndWon=w_2ndWon,bpSaved=w_bpSaved,bpMean=w_bpMean,bpConverted=w_bpConverted,svptWon=w_svptWon,returnPtWon=w_returnPtWon,stReturnWon=w_1stReturnWon,ndReturnWon=w_2ndReturnWon)][order(-tourney_date)],
   Tennis_table_work[l_name==i_name,.(tourney_date,tourney_name,surface,opponent=w_name,ace=l_ace,df=l_df,stIn=l_1stIn,stWon=l_1stWon,ndWon=l_2ndWon,bpSaved=l_bpSaved,bpMean=l_bpMean,bpConverted=l_bpConverted,svptWon=l_svptWon,returnPtWon=l_returnPtWon,stReturnWon=l_1stReturnWon,ndReturnWon=l_2ndReturnWon)])[order(-tourney_date)]
   
-  if (!is.null(i_date)) {historique=historique[tourney_date<anydate(i_date)]}
+  if (!is.null(i_date)) {historique=historique[tourney_date<anydate(i_date)|(anydate(i_date)==tourney_date&round_num>i_round)]}
   #AJOUTER match_num<match_num ou round<i_round pour les tourney_date=i_date
   #OU i_date==tourney_date&round_num>i_round F=1 SF=2 QF=3 etc OU i_round=='RR' i_matchnum<match_num
   if ((!is.null(i_date))&(!is.null(i_duree))) {historique=historique[difftime(anydate(i_date),tourney_date)<=i_duree]}
