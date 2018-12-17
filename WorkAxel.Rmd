@@ -21,8 +21,7 @@ Import et premier retraitement sur le nom des variables
 ```{r}
 Tennis_hist<-fread(file='Data/atp_matches.csv', header = T)
 #On garde uniquement les lignes où on dispose des informations détaillées de match
-Tennis_table=Tennis_hist[!is.na(minutes)]
-head(Tennis_table)
+Tennis_table=Tennis_hist[!is.na(minutes)&substr(tourney_name,0,9)!='Davis Cup']
 
 atp_players<- fread(file ='Data/atp_players.csv' ,header = F)
 colnames(atp_players)=c("Player_Id","Prenom","Nom","Main_Forte","DateNaissance","Nationalite")
@@ -41,8 +40,9 @@ Reviens d'un abandon Axel -> Blessure : binaire = 1 si reviens d'un abandon
 
 Transformation de la table tennis : Valeurs -> pourcentages
 ```{r}
+#VIRER COUPE DAVIS
 #Creation de Tennis_table_work
-Tennis_table_work=Tennis_table[,.(tourney_id,tourney_name,surface,tourney_date=anydate(tourney_date),tourney_level,match_num,
+Tennis_table_work=Tennis_table[,.(tourney_id,tourney_name,surface,tourney_date=anydate(tourney_date),tourney_level,match_num,round,round_num=data.table(V1=c('F','SF','QF','R16','R32','R64','R128','RR','BR'),V2=1:9)$V2[match(round,data.table(V1=c('F','SF','QF','R16','R32','R64','R128','RR','BR'),V2=1:9)$V1)],minutes,score,best_of,
 w_id=winner_id,w_name=winner_name,w_age=winner_age,w_ht=winner_ht,w_rank=winner_rank,w_rank_points=winner_rank_points,w_hand=ifelse(winner_hand=='R',1,0) ,w_seed=winner_seed
 ,w_ace=w_ace/w_1stIn,w_df=w_df/w_svpt,w_1stIn=w_1stIn/w_svpt,w_1stWon=w_1stWon/w_1stIn,w_2ndWon=w_2ndWon/(w_svpt-w_1stIn),w_bpSaved=w_bpSaved/w_bpFaced,w_bpMean=l_bpFaced/l_SvGms,w_bpConverted=(l_bpFaced-l_bpSaved)/(l_bpFaced),w_svptWon=(w_1stWon+w_2ndWon)/w_svpt,w_returnPtWon=(l_svpt-l_1stWon-l_2ndWon)/l_svpt,w_1stReturnWon=(l_1stIn-l_1stWon)/l_1stIn,w_2ndReturnWon=((l_svpt-l_1stIn)-l_2ndWon)/(l_svpt-l_1stIn)
 ,l_id=loser_id,l_name=loser_name,l_age=loser_age,l_ht=loser_ht,l_rank=loser_rank,l_rank_points=loser_rank_points,l_hand=loser_hand,l_seed=loser_seed
@@ -69,11 +69,11 @@ Fonction d'historique
 ####i_opponent = Nom de l'opposant -> 'Raphael Nadal'|'Roger Federer'|'Alexander Zverev'
 ####i_row = Nombre de matchs à prendre en compte
 ####i_duree = Durée en jours d'historique à prendre en compte
-f_historique <- function(Tennis_table_work,i_name,i_date=NULL,i_surface=NULL,i_tournament=NULL,i_opponent=NULL,i_row=NULL,i_duree=NULL) {
+f_historique <- function(Tennis_table_work,i_name,i_date=NULL,i_surface=NULL,i_tournament=NULL,i_opponent=NULL,i_row=NULL,i_duree=NULL, i_round=NULL, i_matchnum=NULL) {
   historique=rbind(Tennis_table_work[w_name==i_name,.(tourney_date,tourney_name,surface,opponent=l_name,ace=w_ace,df=w_df,stIn=w_1stIn,stWon=w_1stWon,ndWon=w_2ndWon,bpSaved=w_bpSaved,bpMean=w_bpMean,bpConverted=w_bpConverted,svptWon=w_svptWon,returnPtWon=w_returnPtWon,stReturnWon=w_1stReturnWon,ndReturnWon=w_2ndReturnWon)][order(-tourney_date)],
   Tennis_table_work[l_name==i_name,.(tourney_date,tourney_name,surface,opponent=w_name,ace=l_ace,df=l_df,stIn=l_1stIn,stWon=l_1stWon,ndWon=l_2ndWon,bpSaved=l_bpSaved,bpMean=l_bpMean,bpConverted=l_bpConverted,svptWon=l_svptWon,returnPtWon=l_returnPtWon,stReturnWon=l_1stReturnWon,ndReturnWon=l_2ndReturnWon)])[order(-tourney_date)]
   
-  if (!is.null(i_date)) {historique=historique[tourney_date<anydate(i_date)]}
+  if (!is.null(i_date)) {historique=historique[tourney_date<anydate(i_date)|(anydate(i_date)==tourney_date&round_num>i_round)]}
   #AJOUTER match_num<match_num ou round<i_round pour les tourney_date=i_date
   #OU i_date==tourney_date&round_num>i_round F=1 SF=2 QF=3 etc OU i_round=='RR' i_matchnum<match_num
   if ((!is.null(i_date))&(!is.null(i_duree))) {historique=historique[difftime(anydate(i_date),tourney_date)<=i_duree]}
@@ -108,7 +108,7 @@ Attention : 557 match avec svgms=0 !!!
 
 
 Creation du nombre de jeu et du nombre de Set
-comprendre gsub http://www.endmemo.com/program/R/gsub.php 
+Creation de la notion de fatigue
 ```{r}
 
 
@@ -121,19 +121,27 @@ Tennis_table[,.(score,base::sum(as.numeric(unlist(str_extract_all(gsub("\\(\\d\\
 f_NombreDeJeu <- function(Tennis_table_work,score) {
   return(Tennis_table_work[,.(NbJeuJoue=sum(as.numeric(unlist(str_extract_all(gsub("\\(\\d\\)","",score), "[0-9]+"))))),by=c(colnames(Tennis_table_work))])
 }
-Tennis_table_work_test=f_NombreDeJeu(Tennis_table,"score")
+Tennis_table_work=f_NombreDeJeu(Tennis_table_work,"score")
 
 #### Calcul le nombre de jeux précdemment joués (ou le temps)
 ### Variable obligatoire :
 ####Tennis_table_work = table d'historique des matchs
 ####i_name = Nom du joueur
 ####i_date = Date de calcul
-####i_duree = Duree à prendre en compte
-f_fatigue <- function(Tennis_table_work,i_name,i_date,i_duree) {
-  historique=rbind(Tennis_table_work[winner_name==i_name],
-  Tennis_table_work[loser_name==i_name])[anydate(i_date)>anydate(tourney_date)][difftime(anydate(i_date),anydate(tourney_date))<=i_duree]
+####i_duree = Duree à prendre en compte (en jour)
+f_fatigue <- function(Tennis_table_work,i_name,i_date,i_duree=NULL, i_nbmatchs, i_round) {
+  i_round_num=switch(i_round,'F'=1,'SF'=2,'QF'=3,'R16'=4,'R32'=5,'R64'=6,'R128'=7,'RR'=8,'BR'=9)
+  historique=rbind(
+    Tennis_table_work[w_name==i_name]
+    ,Tennis_table_work[l_name==i_name]
+    )[anydate(i_date)==anydate(tourney_date)][i_round_num<round_num]
   
-  Historique_Sum=historique[,.(NbJeuJoue,minutes)][,lapply(.SD, function(x) sum(na.omit(x[is.finite(x)])))]
+  # historique=rbind(
+  #   Tennis_table_work[winner_name==i_name]
+  #   ,Tennis_table_work[loser_name==i_name]
+  #   )[anydate(i_date)>anydate(tourney_date)][difftime(anydate(i_date),anydate(tourney_date))<=i_duree]
+  
+  Historique_Sum=head(historique[order(round_num),.(NbJeuJoue,minutes)],i_nbmatchs)[,lapply(.SD, function(x) sum(na.omit(x[is.finite(x)])))]
   
   return(Historique_Sum)
 }
@@ -141,91 +149,52 @@ f_fatigue <- function(Tennis_table_work,i_name,i_date,i_duree) {
 TESTS FATIGUES
 ```{r}
 ##################TESTS
-i_name='Borna Coric';i_date='20180305';i_duree=365;
+Tennis_table_work[w_name=='Rafael Nadal'&tourney_date=="2018-05-28"]
 
-Tennis_table_NbJeux=f_NombreDeJeu(Tennis_table,"score")
-
-f_fatigue(Tennis_table_NbJeux,i_name,i_date,100)[,NbJeuJoue]
+f_fatigue(Tennis_table_work,i_name = "Rafael Nadal",i_date = '2018-05-28',i_round = 'QF',i_nbmatchs = 1)
 
 start_time <- Sys.time()
-Table_Fatigue=Tennis_table_NbJeux[,.(fatigue=(f_fatigue(Tennis_table_NbJeux,winner_name,tourney_date,3)[,NbJeuJoue]-f_fatigue(Tennis_table_NbJeux,loser_name,tourney_date,3)[,NbJeuJoue])),by=c(colnames(Tennis_table_NbJeux))]
+Table_Fatigue=Tennis_table_work[,.(fatigue=(f_fatigue(Tennis_table_work,i_name=w_name,i_date=tourney_date,i_duree=NULL, i_nbmatchs=2, i_round=round)[,NbJeuJoue]-f_fatigue(Tennis_table_work,i_name=l_name,i_date=tourney_date,i_duree=NULL, i_nbmatchs=2, i_round=round)[,NbJeuJoue])),by=c(colnames(Tennis_table_work))]
 end_time <- Sys.time()
 time=end_time - start_time
 
-Table_Fatigue[tourney_id=='2001-520']
-nrow(Table_Fatigue[fatigue>0])/nrow(Table_Fatigue[fatigue!=0])
-nrow(Table_Fatigue[fatigue<0])/nrow(Table_Fatigue[fatigue!=0])
-Tennis_table[tourney_date>'20180301',.(tourney_id,match_num,fatigue=f_fatigue(Tennis_table[tourney_date>'20180301'],winner_name,tourney_date,100)[,scorenum])]
-Tennis_table[tourney_date>'20180301',.(fatigue=f_fatigue(Tennis_table[tourney_date>'20180301'],winner_name,tourney_date,100)[,scorenum]),by=.(winner_name,tourney_date)]
-Tennis_table[tourney_date>'20180301',.(tourney_id,match_num,fatigue=f_fatigue(Tennis_table[tourney_date>'20180301'],winner_name,tourney_date,100)[,scorenum]),by=.()]
+nrow(Table_Fatigue[fatigue>0])/nrow(Table_Fatigue[fatigue!=0])#42%
+nrow(Table_Fatigue[fatigue<0])/nrow(Table_Fatigue[fatigue!=0])#58%
 
-for (i in 1:10) {
-  name=Tennis_table[tourney_date>'20180301'][i,winner_name]
-  date=Tennis_table[tourney_date>'20180301'][i,tourney_date]
-  print(f_fatigue(Tennis_table,name,date,100)[,scorenum])
-}
-name
-date
-f_fatigue(Tennis_table,"Borna Coric","20180305",100)
-Tennis_table[winner_name=="Borna Coric"]
 ```
 
-Gros problème de dates des matchs absente
+Notion d'endurance
 ```{R}
-Tennis_table[tourney_name=='Us Open'&tourney_date>='20180801'&winner_name=='Rafael Nadal']
-Tennis_table[tourney_date>'20000101',length(gregexpr(" ",winner_name)[[1]]),by=winner_name][,.N,by=V1]
-Tennis_table[winner_name=='Arnaud Di Pasquale']
-install.packages("readxl")
-library("readxl")
+#### Calcul le nombre de jeux précdemment joués (ou le temps)
+### Variable obligatoire :
+####Tennis_table_work = table d'historique des matchs
+####i_name = Nom du joueur
+####i_date = Date de calcul
+####i_duree = Duree à prendre en compte (en jour)
+f_NbSetsJoues<- function(score) {
+  return(length(str_extract_all(gsub("\\(\\d\\)","",'7-5 6-2 prout 8-5(8)'), "[0-9]+")[[1]])/2)
+}
 
-nrow(Tennis_table[tourney_date>'20030101'])
 
-Tmp_Data_Date=rbind(data.table(read_excel("Data/Dates/2003.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
-,data.table(read_excel("Data/Dates/2004.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
-,data.table(read_excel("Data/Dates/2005.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
-,data.table(read_excel("Data/Dates/2006.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
-,data.table(read_excel("Data/Dates/2007.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
-,data.table(read_excel("Data/Dates/2008.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
-,data.table(read_excel("Data/Dates/2009.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
-,data.table(read_excel("Data/Dates/2010.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
-,data.table(read_excel("Data/Dates/2011.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
-,data.table(read_excel("Data/Dates/2012.xls"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
-,data.table(read_excel("Data/Dates/2013.xlsx"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
-,data.table(read_excel("Data/Dates/2014.xlsx"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
-,data.table(read_excel("Data/Dates/2015.xlsx"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
-,data.table(read_excel("Data/Dates/2016.xlsx"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
-,data.table(read_excel("Data/Dates/2017.xlsx"))[,.(Tournament,Date,Surface,Round,Winner,Loser)]
-,data.table(read_excel("Data/Dates/2018.xlsx"))[,.(Tournament,Date,Surface,Round,Winner,Loser)])
 
-Tennis_table[winner_name=='Arnaud Di Pasquale']
-
-str_locate('Arnaud Di Pasquale', ' ')
-paste(substr('Arnaud Di Pasquale',str_locate('Arnaud Di Pasquale', ' ')+1,nchar('Arnaud Di Pasquale')),paste(substr(substr('Arnaud Di Pasquale',0 ,str_locate('Arnaud Di Pasquale', ' ')-1),0,1),'.', sep=''),sep=' ')
-
-Tennis_table[,Winner_NameSmall:=paste(substr(winner_name,str_locate(winner_name, ' ')+1,nchar(winner_name)),paste(substr(substr(winner_name,0 ,str_locate(winner_name, ' ')-1),0,1),'.', sep=''),sep=' ')]
-Tennis_table[,Loser_NameSmall:=paste(substr(loser_name,str_locate(loser_name, ' ')+1,nchar(loser_name)),paste(substr(substr(loser_name,0 ,str_locate(loser_name, ' ')-1),0,1),'.', sep=''),sep=' ')]
-
-merge(Tennis_table,Tmp_Data_Date,by.x=c("tourney_name","surface","Winner_NameSmall","Loser_NameSmall"),by.y=c("Tournament", "Surface", "Winner", "Loser"))
-merge(Tennis_table,Tmp_Data_Date,by.x=c("tourney_name"),by.y=c("Tournament"))
-
-Tmp_Data_Date[,Tournament,by=Tournament]
-sqldf(
-  "SELECT tourney_name, Tournament
-  FROM
-  (SELECT tourney_name FROM Tennis_table GROUP BY tourney_name) as a
-  LEFT JOIN 
-  (SELECT Tournament,min(Date) as DateMin FROM Tmp_Data_Date GROUP BY Tournament) as b ON a.tourney_name=b.Tournament
+f_endurance<- function(Tennis_table_work,i_name,i_date, i_round='BR') {
+  i_round_num=switch(i_round,'F'=1,'SF'=2,'QF'=3,'R16'=4,'R32'=5,'R64'=6,'R128'=7,'RR'=8,'BR'=9)
+  historique=Tennis_table_work[w_name==i_name|l_name==i_name][anydate(i_date)>tourney_date|(anydate(i_date)==tourney_date&i_round_num<round_num)]
+  historique[,Nbsets:=f_NbSetsJoues(score)]
+  match_court = nrow(historique[w_name==i_name&best_of>Nbsets])/nrow(historique[best_of>Nbsets])
+  match_lon = nrow(historique[w_name==i_name&best_of==Nbsets])/nrow(historique[best_of==Nbsets])
   
-  "
-)
-sqldf(
-  "SELECT tourney_name, Tournament
-  FROM
-  (SELECT Tournament FROM Tmp_Data_Date GROUP BY Tournament) as a
-  LEFT JOIN 
-  (SELECT tourney_name FROM Tennis_table GROUP BY tourney_name) as b ON b.tourney_name=a.Tournament
-  "
-)
+  return(ifelse(match_lon>match_court,1,0))
+}
+
+i_name='Rafael Nadal'; i_date='2018-01-01';i_round_num=9
+historique=Tennis_table_work[w_name==i_name|l_name==i_name][anydate(i_date)>tourney_date|(anydate(i_date)==tourney_date&i_round_num<round_num)]
+  historique[,Nbsets:=f_NbSetsJoues(score)]
+  match_court = nrow(historique[w_name==i_name&best_of>Nbsets])/nrow(historique[best_of>Nbsets])
+  match_lon = nrow(historique[w_name==i_name&best_of==Nbsets])/nrow(historique[best_of==Nbsets])
+ifelse(match_lon>match_court,1,0)
+
+f_endurance(Tennis_table_work,i_name='Rafael Nadal',i_date='20180901')
 ```
 
 Creation d'un flag abandon => on ne fait pas la distinction entre abandonn? pendant le match 
@@ -239,49 +208,25 @@ Abandonv2<-gsub("[^A-Za-z]","",Tennis_table$score)
 f_abandon <- function (Tennis_table,score) {
   return(Tennis_table[,abandon:=ifelse(gsub("[^A-Za-z]","",score)!="",1,0)])
 }
-f_abandon(Tennis_table,"score")
+f_abandon(Tennis_table_work,"score")
 
 #### Renvoie si le joueur i_name est de retour d'abandon à la date i_date
 f_retour_abandon <- function(Tennis_table, i_name, i_date) {
-  return(Tennis_table[(winner_name==i_name|loser_name==i_name)][tourney_date<i_date][head(order(-tourney_date,-match_num),1),c(ifelse(abandon==1&loser_name==i_name,1,0))])
+  return(Tennis_table[(w_name==i_name|l_name==i_name)][tourney_date<anydate(i_date)][head(order(-xtfrm(tourney_date),round_num,-match_num),1),c(ifelse(gsub("[^A-Za-z]","",score)!=""&l_name==i_name,1,0))])
 }
 
-i_name='Rafael Nadal'; i_date='20180101'
-Tennis_table[(winner_name==i_name|loser_name==i_name)][tourney_date<i_date][head(order(-tourney_date,-match_num),1)]
-f_retour_abandon(Tennis_table,i_name,i_date)==1
-```
-```{R}
-sqldf(
-  "
-  SELECT b.round, count(*)
-FROM (
-  SELECT tourney_name
-        ,tourney_date
-        ,max(match_num) max_match
-  FROM Tennis_table
-  WHERE tourney_date<'20180101'
-  GROUP BY tourney_name
-        ,tourney_date
-) as a
-LEFT JOIN Tennis_table as b ON a.tourney_name=b.tourney_name AND a.tourney_date=b.tourney_date AND a.max_match=b.match_num
-  GROUP BY b.round"
-)
-sqldf(
-  "
-  SELECT *
-FROM (
-  SELECT tourney_name
-        ,tourney_date
-        ,max(match_num) max_match
-  FROM Tennis_table
-  WHERE tourney_date<'20180101'
-  GROUP BY tourney_name
-        ,tourney_date
-) as a
-LEFT JOIN Tennis_table as b ON a.tourney_name=b.tourney_name AND a.tourney_date=b.tourney_date AND a.max_match=b.match_num
-WHERE b.round<>'F'"
-)
-Tennis_table[tourney_name=='Indian Wells Masters'&tourney_date=='19960311']
+i_name='Rafael Nadal'; i_date='2018-01-01'
+Tennis_table_work[(w_name==i_name|l_name==i_name)][tourney_date<i_date][head(order(-xtfrm(tourney_date),-match_num),1),ifelse(gsub("[^A-Za-z]","",score)!=""&l_name==i_name,1,0)]
+f_retour_abandon(Tennis_table_work,i_name,i_date)==1
+
+start_time <- Sys.time()
+Table_Abandon=Tennis_table_work[,.(abandon_diff=(f_retour_abandon(Tennis_table_work,i_name=w_name,i_date=tourney_date)-f_retour_abandon(Tennis_table_work,i_name=l_name,i_date=tourney_date))),by=c(colnames(Tennis_table_work))]
+end_time <- Sys.time()
+time=end_time - start_time
+
+nrow(Table_Abandon[abandon_diff>0])/nrow(Table_Abandon[abandon_diff!=0])#42%
+nrow(Table_Abandon[abandon_diff<0])/nrow(Table_Abandon[abandon_diff!=0])#58%
+
 ```
 
 Reorganisation de la table pour que le le winner ait 50% de chance d'être joueur 1/ joueur 2 => avoid sur-apprentissage
