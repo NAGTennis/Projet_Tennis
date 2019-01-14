@@ -42,7 +42,6 @@ Transformation de la table tennis : Valeurs -> pourcentages
 ```{r}
 #VIRER COUPE DAVIS
 #Creation de Tennis_table_work
-Tennis_table_work=Tennis_table[,.(tourney_id,tourney_name,surface,tourney_date=anydate(tourney_date),tourney_level,match_num,round,round_num=data.table(V1=c('F','SF','QF','R16','R32','R64','R128','RR','BR'),V2=1:9)$V2[match(round,data.table(V1=c('F','SF','QF','R16','R32','R64','R128','RR','BR'),V2=1:9)$V1)],minutes,score,best_of,
 Tennis_table_work=Tennis_table[,.(tourney_id,tourney_name,surface,tourney_date=anydate(tourney_date),tourney_level,match_num,round,round_num=data.table(V1=c('F','SF','QF','R16','R32','R64','R128','RR','BR'),V2=1:9)$V2[match(round,data.table(V1=c('F','SF','QF','R16','R32','R64','R128','RR','BR'),V2=1:9)$V1)],
 w_id=winner_id,w_name=winner_name,w_age=winner_age,w_ht=winner_ht,w_rank=winner_rank,w_rank_points=winner_rank_points,w_hand=ifelse(winner_hand=='R',1,0) ,w_seed=winner_seed
 ,w_ace=w_ace/w_1stIn,w_df=w_df/w_svpt,w_1stIn=w_1stIn/w_svpt,w_1stWon=w_1stWon/w_1stIn,w_2ndWon=w_2ndWon/(w_svpt-w_1stIn),w_bpSaved=w_bpSaved/w_bpFaced,w_bpMean=l_bpFaced/l_SvGms,w_bpConverted=(l_bpFaced-l_bpSaved)/(l_bpFaced),w_svptWon=(w_1stWon+w_2ndWon)/w_svpt,w_returnPtWon=(l_svpt-l_1stWon-l_2ndWon)/l_svpt,w_1stReturnWon=(l_1stIn-l_1stWon)/l_1stIn,w_2ndReturnWon=((l_svpt-l_1stIn)-l_2ndWon)/(l_svpt-l_1stIn)
