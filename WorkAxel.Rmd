@@ -43,7 +43,7 @@ Transformation de la table tennis : Valeurs -> pourcentages
 Tennis_table_work=Tennis_table[,.(tourney_id,tourney_name,surface,tourney_date=anydate(tourney_date),tourney_level,match_num,round,round_num=data.table(V1=c('F','SF','QF','R16','R32','R64','R128','RR','BR'),V2=1:9)$V2[match(round,data.table(V1=c('F','SF','QF','R16','R32','R64','R128','RR','BR'),V2=1:9)$V1)],minutes,score,best_of,
 w_id=winner_id,w_name=winner_name,w_age=winner_age,w_ht=winner_ht,w_rank=winner_rank,w_rank_points=winner_rank_points,w_hand=ifelse(winner_hand=='R',1,0) ,w_seed=winner_seed
 ,w_ace=w_ace/w_1stIn,w_df=w_df/w_svpt,w_1stIn=w_1stIn/w_svpt,w_1stWon=w_1stWon/w_1stIn,w_2ndWon=w_2ndWon/(w_svpt-w_1stIn),w_bpSaved=w_bpSaved/w_bpFaced,w_bpMean=l_bpFaced/l_SvGms,w_bpConverted=(l_bpFaced-l_bpSaved)/(l_bpFaced),w_svptWon=(w_1stWon+w_2ndWon)/w_svpt,w_returnPtWon=(l_svpt-l_1stWon-l_2ndWon)/l_svpt,w_1stReturnWon=(l_1stIn-l_1stWon)/l_1stIn,w_2ndReturnWon=((l_svpt-l_1stIn)-l_2ndWon)/(l_svpt-l_1stIn)
-,l_id=loser_id,l_name=loser_name,l_age=loser_age,l_ht=loser_ht,l_rank=loser_rank,l_rank_points=loser_rank_points,l_hand=loser_hand,l_seed=loser_seed
+,l_id=loser_id,l_name=loser_name,l_age=loser_age,l_ht=loser_ht,l_rank=loser_rank,l_rank_points=loser_rank_points,l_hand=ifelse(loser_hand=='R',1,0),l_seed=loser_seed
 ,l_ace=l_ace/l_1stIn,l_df=l_df/l_svpt,l_1stIn=l_1stIn/l_svpt,l_1stWon=l_1stWon/l_1stIn,l_2ndWon=l_2ndWon/(l_svpt-l_1stIn),l_bpSaved=l_bpSaved/l_bpFaced,l_bpMean=w_bpFaced/w_SvGms,l_bpConverted=(w_bpFaced-w_bpSaved)/(w_bpFaced),l_svptWon=(l_1stWon+l_2ndWon)/l_svpt,l_returnPtWon=(w_svpt-w_1stWon-w_2ndWon)/w_svpt,l_1stReturnWon=(w_1stIn-w_1stWon)/w_1stIn,l_2ndReturnWon=((w_svpt-w_1stIn)-w_2ndWon)/(w_svpt-w_1stIn)
 )]
 #Modification Date et suppression des valeurs NaN sur les bp_saved
@@ -52,6 +52,22 @@ Tennis_table_work[is.nan(w_bpSaved),':='(w_bpSaved=1)]
 Tennis_table_work[is.nan(l_bpSaved),':='(l_bpSaved=1)]
 ```
 
+Mélange de l'ordre des joueurs
+```{r}
+nb_row=nrow(table_score)
+
+table_score=Tennis_table_work[,.(tourney_id,tourney_name,surface,tourney_date,tourney_level,match_num,round,round_num,minutes,score,best_of,w_id,w_name,w_age,w_ht,w_rank,w_rank_points,w_hand,w_seed,l_id,l_name,l_age,l_ht,l_rank,l_rank_points,l_hand,l_seed)]
+
+table_score[,coin:=round((runif(nb_row,0,1)),0)]
+
+# Tennis_table_work[coin==1,c("p1_id","p1_name","p1_age","p1_ht","p1_rank","p1_rank_points","p1_hand","p1_seed","p1_ace","p1_df","p1_1stIn","p1_1stWon","p1_2ndWon","p1_bpSaved","p1_bpMean","p1_bpConverted","p1_svptWon","p1_returnPtWon","p1_1stReturnWon","p1_2ndReturnWon","p2_id","p2_name","p2_age","p2_ht","p2_rank","p2_rank_points","p2_hand","p2_seed","p2_ace","p2_df","p2_1stIn","p2_1stWon","p2_2ndWon","p2_bpSaved","p2_bpMean","p2_bpConverted","p2_svptWon","p2_returnPtWon","p2_1stReturnWon","p2_2ndReturnWon") := list(w_id,w_name,w_age,w_ht,w_rank,w_rank_points,w_hand,w_seed,w_ace,w_df,w_1stIn,w_1stWon,w_2ndWon,w_bpSaved,w_bpMean,w_bpConverted,w_svptWon,w_returnPtWon,w_1stReturnWon,w_2ndReturnWon,l_id,l_name,l_age,l_ht,l_rank,l_rank_points,l_hand,l_seed,l_ace,l_df,l_1stIn,l_1stWon,l_2ndWon,l_bpSaved,l_bpMean,l_bpConverted,l_svptWon,l_returnPtWon,l_1stReturnWon,l_2ndReturnWon)]
+# Tennis_table_work[coin==0,c("p1_id","p1_name","p1_age","p1_ht","p1_rank","p1_rank_points","p1_hand","p1_seed","p1_ace","p1_df","p1_1stIn","p1_1stWon","p1_2ndWon","p1_bpSaved","p1_bpMean","p1_bpConverted","p1_svptWon","p1_returnPtWon","p1_1stReturnWon","p1_2ndReturnWon","p2_id","p2_name","p2_age","p2_ht","p2_rank","p2_rank_points","p2_hand","p2_seed","p2_ace","p2_df","p2_1stIn","p2_1stWon","p2_2ndWon","p2_bpSaved","p2_bpMean","p2_bpConverted","p2_svptWon","p2_returnPtWon","p2_1stReturnWon","p2_2ndReturnWon") := list(l_id,l_name,l_age,l_ht,l_rank,l_rank_points,l_hand,l_seed,l_ace,l_df,l_1stIn,l_1stWon,l_2ndWon,l_bpSaved,l_bpMean,l_bpConverted,l_svptWon,l_returnPtWon,l_1stReturnWon,l_2ndReturnWon,w_id,w_name,w_age,w_ht,w_rank,w_rank_points,w_hand,w_seed,w_ace,w_df,w_1stIn,w_1stWon,w_2ndWon,w_bpSaved,w_bpMean,w_bpConverted,w_svptWon,w_returnPtWon,w_1stReturnWon,w_2ndReturnWon)]
+
+table_score[coin==1,c("p1_id","p1_name","p1_age","p1_ht","p1_rank","p1_rank_points","p1_hand","p1_seed","p2_id","p2_name","p2_age","p2_ht","p2_rank","p2_rank_points","p2_hand","p2_seed") := list(w_id,w_name,w_age,w_ht,w_rank,w_rank_points,w_hand,w_seed,l_id,l_name,l_age,l_ht,l_rank,l_rank_points,l_hand,l_seed)]
+table_score[coin==0,c("p1_id","p1_name","p1_age","p1_ht","p1_rank","p1_rank_points","p1_hand","p1_seed","p2_id","p2_name","p2_age","p2_ht","p2_rank","p2_rank_points","p2_hand","p2_seed") := list(l_id,l_name,l_age,l_ht,l_rank,l_rank_points,l_hand,l_seed,w_id,w_name,w_age,w_ht,w_rank,w_rank_points,w_hand,w_seed)]
+
+
+```
 
 Fonction d'historique
 ```{r}
@@ -89,8 +105,17 @@ Tennis_table_work[(w_name==i_name&l_name==i_opponent)|(l_name==i_name&w_name==i_
 f_historique(Tennis_table_work,i_name)
 f_historique(Tennis_table_work,i_name=i_name,i_opponent=i_opponent)
 f_historique(Tennis_table_work,i_name=i_name,i_opponent=i_opponent,i_date=i_date)
-f_historique(Tennis_table_work,i_name=i_name,i_opponent=i_opponent,i_row=1)
-f_historique(Tennis_table_work,i_name=i_name,i_opponent=i_opponent,i_tournament = 'Australian Open')
+names(f_historique(Tennis_table_work,i_name=i_name,i_opponent=i_opponent,i_row=1))
+list(f_historique(Tennis_table_work,i_name=i_name,i_opponent=i_opponent,i_tournament = 'Australian Open'))
+c(test)
+
+###Application
+start_time <- Sys.time()
+table_score[,c("hist_ace","hist_df","hist_1stIn","hist_1stWon","hist_2ndWon","hist_bpSaved","hist_bpMean","hist_bpConverted","hist_svptWon","hist_returnPtWon","hist_1stReturnWon","hist_2ndReturnWon"):=c(f_historique(Tennis_table_work,i_name=p1_name,i_round=round_num,i_matchnum=match_num)-f_historique(Tennis_table_work,i_name=p2_name,i_round=round_num,i_matchnum=match_num)),by=c(colnames(table_score))]
+end_time <- Sys.time()
+time=end_time - start_time
+
+
 ```
 
 Stats joueurs match
@@ -200,19 +225,19 @@ start_time <- Sys.time()
 Table_Abandon=Tennis_table_work[,.(abandon_diff=(f_retour_abandon(Tennis_table_work,i_name=w_name,i_date=tourney_date)-f_retour_abandon(Tennis_table_work,i_name=l_name,i_date=tourney_date))),by=c(colnames(Tennis_table_work))]
 end_time <- Sys.time()
 time=end_time - start_time
-nrow(Table_Abandon[abandon_diff>0])/nrow(Table_Abandon[abandon_diff!=0])#42%
-nrow(Table_Abandon[abandon_diff<0])/nrow(Table_Abandon[abandon_diff!=0])#58%
+nrow(Table_Abandon[abandon_diff>0])/nrow(Table_Abandon[abandon_diff!=0])#49%
+nrow(Table_Abandon[abandon_diff<0])/nrow(Table_Abandon[abandon_diff!=0])#51%
 ```
 
 Reorganisation de la table pour que le le winner ait 50% de chance d'être joueur 1/ joueur 2 => avoid sur-apprentissage
 ```{r}
-set.seed(123)
+set.seed(1234)
 Coin<- round((runif(nrow(Tennis_table),0,1)),0)
 head(Tennis_table)
 # !!!!! essayer i in seq_along(Tennis_table) !!!!!
 for (i in seq_along(Tennis_table)) {
 if (Coin[i] == 1) {
-Tennis_table[i,':='(player1_id=winner_id, player1_seed=winner_seed, player1_entry= winner_entry,player1_name=winner_name,player1_hand=winner_hand,player1_ht=winner_ht,player1_ioc=winner_ioc,
+Tennis_table[coin==1,':='(player1_id=winner_id, player1_seed=winner_seed, player1_entry= winner_entry,player1_name=winner_name,player1_hand=winner_hand,player1_ht=winner_ht,player1_ioc=winner_ioc,
 player1_age=winner_age,player1_rank=winner_rank,player1_rank_points=winner_rank_points,
 player2_id=loser_id, player2_seed=loser_seed, player2_entry= loser_entry,player2_name=loser_name,player2_hand=loser_hand,player2_ht=loser_ht,player2_ioc=loser_ioc,
 player2_age=loser_age,player2_rank=loser_rank,player2_rank_points=loser_rank_points),]
