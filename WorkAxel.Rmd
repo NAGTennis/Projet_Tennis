@@ -250,11 +250,12 @@ end_time <- Sys.time()
 time=end_time - start_time
 
 save(table_score,file="Data/table_score.RData")
-training_table=table_score[,!c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name")]
-
-
+load("Data/table_score.RData")
+training_table=table_score
+training_table[,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
+training_table[,cible:=as.factor(coin)]
+training_table[,coin := NULL]
 f_replaceNA(training_table)
 library(randomForest)
-randomForest(as.matrix(training_table[,!"cible"]),as.matrix(training_table[,cible]),ntree = 500,  na.action = na.omit)
-training_table[,cible]
+rf=randomForest(as.matrix(training_table[,!"cible"]),factor(training_table[,cible]),ntree = 500,  na.action = na.omit)
 ```
