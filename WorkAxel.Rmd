@@ -53,7 +53,7 @@ Tennis_table_work[is.nan(l_bpSaved),':='(l_bpSaved=1)]
 
 Mélange de l'ordre des joueurs
 ```{r}
-table_score=Tennis_table_work[,.(tourney_id,tourney_name,surface,tourney_date,tourney_level,match_num,round,round_num,minutes,score,best_of,w_id,w_name,w_age,w_ht,w_rank,w_rank_points,w_hand,w_seed,l_id,l_name,l_age,l_ht,l_rank,l_rank_points,l_hand,l_seed)]
+table_score=Tennis_table_work[,.(tourney_id,tourney_name,surface,tourney_date,tourney_level,match_num,round,round_num,w_id,w_name,w_age,w_ht,w_rank,w_rank_points,w_hand,w_seed,l_id,l_name,l_age,l_ht,l_rank,l_rank_points,l_hand,l_seed)]
 nb_row=nrow(table_score)
 table_score[,coin:=round((runif(nb_row,0,1)),0)]
 
@@ -65,10 +65,16 @@ table_score[coin==0,c("p1_id","p1_name","p1_age","p1_ht","p1_rank","p1_rank_poin
 
 table_score[,c("w_id","w_name","w_age","w_ht","w_rank","w_rank_points","w_hand","w_seed","l_id","l_name","l_age","l_ht","l_rank","l_rank_points","l_hand","l_seed"):=NULL]
 
+table_score[,c("age","ht","rank","rank_points","hand","seed"):=list(p1_age-p2_age,p1_ht-p2_ht,p1_rank-p2_rank,p1_rank_points-p2_rank_points,p1_hand-p2_hand,p1_seed-p2_seed)]
+table_score[,c("p1_age","p2_age","p1_ht","p2_ht","p1_rank","p2_rank","p1_rank_points","p2_rank_points","p1_hand","p2_hand","p1_seed","p2_seed"):=NULL]
 ```
 
 Fonction d'historique
 ```{r}
+f_replaceNA = function(DT) {
+  for (j in seq_len(ncol(DT)))
+    set(DT,which(is.na(DT[[j]])),j,0)
+}
 ###f_historique renvoi les statistiques moyennes d'un joueur en fonctions de différentes variables
 ### Variable obligatoire :
 ####Tennis_table_work = table d'historique des matchs, doit contenir les colonnes :  "tourney_id"     "tourney_name"   "surface"        "tourney_date"   "tourney_level"  "match_num"      "w_id"           "w_name"         "w_age"         "w_ht"           "w_rank"         "w_rank_points"  "w_hand"         "w_seed"         "w_ace"          "w_df"           "w_1stIn"        "w_1stWon"      "w_2ndWon"       "w_bpSaved"      "w_bpMean"       "w_bpConverted"  "w_svptWon"      "w_returnPtWon"  "w_1stReturnWon" "w_2ndReturnWon" "l_id"          "l_name"         "l_age"          "l_ht"           "l_rank"         "l_rank_points"  "l_hand"         "l_seed"         "l_ace"          "l_df"          "l_1stIn"        "l_1stWon"       "l_2ndWon"       "l_bpSaved"      "l_bpMean"       "l_bpConverted"  "l_svptWon"      "l_returnPtWon"  "l_1stReturnWon"  "l_2ndReturnWon"
@@ -94,6 +100,7 @@ f_historique <- function(Tennis_table_work,i_name,i_date=NULL,i_surface=NULL,i_t
   if (!is.null(i_row)) {historique=historique[,head(.SD,i_row)]}
   
   Historique_Mean=historique[,.(ace,df,stIn,stWon,ndWon,bpSaved,bpMean,bpConverted,svptWon,returnPtWon,stReturnWon,ndReturnWon)][,lapply(.SD, function(x) mean(na.omit(x[is.finite(x)])))]
+  f_replaceNA(Historique_Mean)
   return(Historique_Mean)
 }
 ###TEST
@@ -227,15 +234,27 @@ Création Base de Score
 Tennis_table_work=f_NombreDeJeu(Tennis_table_work,"score")
 
 start_time <- Sys.time()
-table_score[,c("hist_ace","hist_df","hist_1stIn","hist_1stWon","hist_2ndWon","hist_bpSaved","hist_bpMean","hist_bpConverted","hist_svptWon","hist_returnPtWon","hist_1stReturnWon","hist_2ndReturnWon","fatigue","abandon_diff"):=c((f_historique(Tennis_table_work,i_name=p1_name,i_round=round_num,i_matchnum=match_num)-f_historique(Tennis_table_work,i_name=p2_name,i_round=round_num,i_matchnum=match_num)),(f_fatigue(Tennis_table_work,i_name=p1_name,i_date=tourney_date,i_duree=NULL, i_nbmatchs=2, i_round=round, i_matchnum=match_num)[,NbJeuJoue]-f_fatigue(Tennis_table_work,i_name=p2_name,i_date=tourney_date,i_duree=NULL, i_nbmatchs=2, i_round=round, i_matchnum=match_num)[,NbJeuJoue]),(f_retour_abandon(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_retour_abandon(Tennis_table_work,i_name=p2_name,i_date=tourney_date))),by=c(colnames(table_score))]
+table_score[,c("hist_ace","hist_df","hist_1stIn","hist_1stWon","hist_2ndWon","hist_bpSaved","hist_bpMean","hist_bpConverted","hist_svptWon","hist_returnPtWon","hist_1stReturnWon","hist_2ndReturnWon"
+               ,"Dix_ace","Dix_df","Dix_1stIn","Dix_1stWon","Dix_2ndWon","Dix_bpSaved","Dix_bpMean","Dix_bpConverted","Dix_svptWon","Dix_returnPtWon","Dix_1stReturnWon","Dix_2ndReturnWon"
+               ,"h2h_ace","h2h_df","h2h_1stIn","h2h_1stWon","h2h_2ndWon","h2h_bpSaved","h2h_bpMean","h2h_bpConverted","h2h_svptWon","h2h_returnPtWon","h2h_1stReturnWon","h2h_2ndReturnWon"
+               ,"tourn_ace","tourn_df","tourn_1stIn","tourn_1stWon","tourn_2ndWon","tourn_bpSaved","tourn_bpMean","tourn_bpConverted","tourn_svptWon","tourn_returnPtWon","tourn_1stReturnWon","tourn_2ndReturnWon"
+               ,"fatigue"
+               ,"abandon_diff")
+            := c((f_historique(Tennis_table_work,i_name=p1_name,i_surface=surface,i_round=round_num,i_matchnum=match_num)-f_historique(Tennis_table_work,i_name=p2_name,i_surface=surface,i_round=round_num,i_matchnum=match_num))
+                ,(f_historique(Tennis_table_work,i_name=p1_name,i_surface=surface,i_round=round_num,i_matchnum=match_num,i_row=10)-f_historique(Tennis_table_work,i_name=p2_name,i_surface=surface,i_round=round_num,i_matchnum=match_num,i_row=10))
+                ,(f_historique(Tennis_table_work,i_name=p1_name,i_surface=surface,i_round=round_num,i_matchnum=match_num,i_opponent=p2_name)-f_historique(Tennis_table_work,i_name=p2_name,i_surface=surface,i_round=round_num,i_matchnum=match_num,i_opponent=p1_name))
+                ,(f_historique(Tennis_table_work,i_name=p1_name,i_tournament=tourney_name,i_round=round_num,i_matchnum=match_num)-f_historique(Tennis_table_work,i_name=p2_name,i_tournament=tourney_name,i_round=round_num,i_matchnum=match_num))
+                ,(f_fatigue(Tennis_table_work,i_name=p1_name,i_date=tourney_date,i_duree=NULL, i_nbmatchs=2, i_round=round, i_matchnum=match_num)[,NbJeuJoue]-f_fatigue(Tennis_table_work,i_name=p2_name,i_date=tourney_date,i_duree=NULL, i_nbmatchs=2, i_round=round, i_matchnum=match_num)[,NbJeuJoue])
+                ,(f_retour_abandon(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_retour_abandon(Tennis_table_work,i_name=p2_name,i_date=tourney_date))),by=c(colnames(table_score))]
 end_time <- Sys.time()
 time=end_time - start_time
 
-####VERIFICATION
-test=table_score[tourney_id=="2000-339"&match_num==10]
-test[,c("hist_ace","hist_df","hist_1stIn","hist_1stWon","hist_2ndWon","hist_bpSaved","hist_bpMean","hist_bpConverted","hist_svptWon","hist_returnPtWon","hist_1stReturnWon","hist_2ndReturnWon","fatigue","abandon_diff"):=c((f_historique(Tennis_table_work,i_name=p1_name,i_round=round_num,i_matchnum=match_num)-f_historique(Tennis_table_work,i_name=p2_name,i_round=round_num,i_matchnum=match_num)),(f_fatigue(Tennis_table_work,i_name=p1_name,i_date=tourney_date,i_duree=NULL, i_nbmatchs=2, i_round=round, i_matchnum=match_num)[,NbJeuJoue]-f_fatigue(Tennis_table_work,i_name=p2_name,i_date=tourney_date,i_duree=NULL, i_nbmatchs=2, i_round=round, i_matchnum=match_num)[,NbJeuJoue]),(f_retour_abandon(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_retour_abandon(Tennis_table_work,i_name=p2_name,i_date=tourney_date))),by=c(colnames(test))]
+save(table_score,file="Data/table_score.RData")
+training_table=table_score[,!c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name")]
 
-test[,c("patate1"):=(f_retour_abandon(Tennis_table_work,i_name=p2_name,i_date=tourney_date)),by=c(colnames(test))]
-test[,c("hist_ace1","hist_df1","hist_1stIn1","hist_1stWon1","hist_2ndWon1","hist_bpSaved1","hist_bpMean1","hist_bpConverted1","hist_svptWon1","hist_returnPtWon1","hist_1stReturnWon1","hist_2ndReturnWon1"):=c(f_historique(Tennis_table_work,i_name=p1_name,i_round=round_num,i_matchnum=match_num)),by=c(colnames(test))]
-test[,c("hist_ace2","hist_df2","hist_1stIn2","hist_1stWon2","hist_2ndWon2","hist_bpSaved2","hist_bpMean2","hist_bpConverted2","hist_svptWon2","hist_returnPtWon2","hist_1stReturnWon2","hist_2ndReturnWon2"):=c(f_historique(Tennis_table_work,i_name=p2_name,i_round=round_num,i_matchnum=match_num)),by=c(colnames(test))]
+
+f_replaceNA(training_table)
+library(randomForest)
+randomForest(as.matrix(training_table[,!"cible"]),as.matrix(training_table[,cible]),ntree = 500,  na.action = na.omit)
+training_table[,cible]
 ```
