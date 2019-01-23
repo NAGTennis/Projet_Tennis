@@ -107,7 +107,7 @@ f_historique <- function(Tennis_table_work,i_name,i_date=NULL,i_surface=NULL,i_t
 Tennis_table_work[,max(tourney_date)]
 i_name='Alexander Zverev';i_opponent='Rafael Nadal';i_date='20170101'
 Tennis_table_work[(w_name==i_name&l_name==i_opponent)|(l_name==i_name&w_name==i_opponent)]
-f_historique(Tennis_table_work,i_name)
+f_historique(Tennis_table_work,"plop")
 f_historique(Tennis_table_work,i_name=i_name,i_opponent=i_opponent)
 f_historique(Tennis_table_work,i_name='Menno Oosting',i_date='1991-07-29',i_round=5,i_matchnum = 1)-f_historique(Tennis_table_work,i_name='Menno Oosting',i_date='1991-01-29',i_round=5,i_matchnum = 1)
 names(f_historique(Tennis_table_work,i_name=i_name,i_opponent=i_opponent,i_row=1))
@@ -162,7 +162,7 @@ TESTS FATIGUES
 ```{r}
 ##################TESTS
 Tennis_table_work[w_name=='Rafael Nadal'&tourney_date=="2018-05-28"]
-f_fatigue(Tennis_table_work,i_name = "Rafael Nadal",i_date = '2018-05-28',i_round = 4,i_nbmatchs = 1, i_matchnum=1)
+f_fatigue(Tennis_table_work,i_name = "Rafaeqsdl Nadal",i_date = '2018-05-28',i_round = 4,i_nbmatchs = 1, i_matchnum=1)
 start_time <- Sys.time()
 Table_Fatigue=Tennis_table_work[,.(fatigue=(f_fatigue(Tennis_table_work,i_name=w_name,i_date=tourney_date,i_duree=NULL, i_nbmatchs=2, i_round=round, i_matchnum=match_num)[,NbJeuJoue]-f_fatigue(Tennis_table_work,i_name=l_name,i_date=tourney_date,i_duree=NULL, i_nbmatchs=2, i_round=round, i_matchnum=match_num)[,NbJeuJoue])),by=c(colnames(Tennis_table_work))]
 end_time <- Sys.time()
@@ -188,8 +188,8 @@ f_endurance<- function(Tennis_table_work,i_name,i_date, i_round='BR') {
   historique[,Nbsets:=f_NbSetsJoues(score)]
   match_court = nrow(historique[w_name==i_name&best_of>Nbsets])/nrow(historique[best_of>Nbsets])
   match_lon = nrow(historique[w_name==i_name&best_of==Nbsets])/nrow(historique[best_of==Nbsets])
-  
-  return(ifelse(match_lon>match_court,1,0))
+    
+  return((ifelse(match_lon>match_court,1,0)))
 }
 i_name='Rafael Nadal'; i_date='2018-01-01';i_round_num=9
 historique=Tennis_table_work[w_name==i_name|l_name==i_name][anydate(i_date)>tourney_date|(anydate(i_date)==tourney_date&i_round_num<round_num)]
@@ -197,7 +197,7 @@ historique=Tennis_table_work[w_name==i_name|l_name==i_name][anydate(i_date)>tour
   match_court = nrow(historique[w_name==i_name&best_of>Nbsets])/nrow(historique[best_of>Nbsets])
   match_lon = nrow(historique[w_name==i_name&best_of==Nbsets])/nrow(historique[best_of==Nbsets])
 ifelse(match_lon>match_court,1,0)
-f_endurance(Tennis_table_work,i_name='Rafael Nadal',i_date='20180901')
+f_endurance(Tennis_table_work,i_name='Rdafael Nadal',i_date='20180901')
 ```
 
 Creation d'un flag abandon => on ne fait pas la distinction entre abandonn? pendant le match 
@@ -245,17 +245,35 @@ table_score[,c("hist_ace","hist_df","hist_1stIn","hist_1stWon","hist_2ndWon","hi
                 ,(f_historique(Tennis_table_work,i_name=p1_name,i_surface=surface,i_round=round_num,i_matchnum=match_num,i_opponent=p2_name)-f_historique(Tennis_table_work,i_name=p2_name,i_surface=surface,i_round=round_num,i_matchnum=match_num,i_opponent=p1_name))
                 ,(f_historique(Tennis_table_work,i_name=p1_name,i_tournament=tourney_name,i_round=round_num,i_matchnum=match_num)-f_historique(Tennis_table_work,i_name=p2_name,i_tournament=tourney_name,i_round=round_num,i_matchnum=match_num))
                 ,(f_fatigue(Tennis_table_work,i_name=p1_name,i_date=tourney_date,i_duree=NULL, i_nbmatchs=2, i_round=round, i_matchnum=match_num)[,NbJeuJoue]-f_fatigue(Tennis_table_work,i_name=p2_name,i_date=tourney_date,i_duree=NULL, i_nbmatchs=2, i_round=round, i_matchnum=match_num)[,NbJeuJoue])
-                ,(f_retour_abandon(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_retour_abandon(Tennis_table_work,i_name=p2_name,i_date=tourney_date))),by=c(colnames(table_score))]
+                ,(f_retour_abandon(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_retour_abandon(Tennis_table_work,i_name=p2_name,i_date=tourney_date)))
+            ,by=c(colnames(table_score))]
 end_time <- Sys.time()
 time=end_time - start_time
 
 save(table_score,file="Data/table_score.RData")
 load("Data/table_score.RData")
-training_table=table_score
+training_table=table_score[year(tourney_date)<2018]
+test_table=table_score[year(tourney_date)==2018]
 training_table[,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
+test_table[,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
 training_table[,cible:=as.factor(coin)]
 training_table[,coin := NULL]
 f_replaceNA(training_table)
+f_replaceNA(test_table)
 library(randomForest)
-rf=randomForest(as.matrix(training_table[,!"cible"]),factor(training_table[,cible]),ntree = 500,  na.action = na.omit)
+rf=randomForest(training_table[,!"cible"],factor(training_table[,cible]),ntree = 500,  na.action = na.omit)
+mod_glm=glm(cible~.,data=training_table)
+
+rf_pred=predict(rf,test_table[,!"coin"])
+glm_pred=predict(glm,test_table[,!"coin"])
+cible=c(test_table[,as.factor(coin)])
+test=cbind(rf_pred,cible)
+erreur=c()
+erreur["rf"]=0
+erreur["atp"]=0
+for (i in 1:2259) {
+  if (test[i,1]!=test[i,2]) {erreur["rf"]=erreur["rf"]+1}
+  if ((test_table[i,coin]==0 & test_table[i,rank]<0) | (test_table[i,coin]==1 & test_table[i,rank]>0)) {erreur["atp"]=erreur["atp"]+1}
+}
+
 ```
