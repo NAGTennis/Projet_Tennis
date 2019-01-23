@@ -15,7 +15,8 @@ library(dtplyr)
 install.packages('lubridate')
 library(lubridate)
 
-Tennis_hist <- tbl_dt(Base_Finale)
+Tennis_hist<-fread(file='Data/atp_matches.csv', header = T)
+Tennis_hist <- tbl_dt(Tennis_hist)
 table(Tennis_table_work$round)
 
 #On garde uniquement les lignes où on dispose des informations détaillées de match
@@ -65,11 +66,12 @@ f_NombreTitre <- function (Tennis_table, i_name, i_date) {
   tmp <-  Tennis_table  %>% 
     filter(round=='F',w_name==i_name, tourney_date<anydate(i_date)) %>% group_by(w_name) %>% 
     summarise(nb_vic = n())
-  
-  return(tmp$nb_vic)
-  
+
+  return(as.integer(ifelse(length(tmp$nb_vic)==0,0,tmp$nb_vic)))
 }
 
+f_NombreTitre(Tennis_table_work,'Rafael Nadal','2018-12-31')
+f_NombreTitre(Tennis_table_work,'Paolo Cane','2018-07-29')
 data_test <- Tennis_table_work %>% mutate(NbTitre = f_NombreTitre(Tennis_table_work,w_name,tourney_date))
 
 
@@ -78,12 +80,13 @@ f_NombreTitreSaison <- function(Tennis_table, i_name, i_date) {
   tmp <-  Tennis_table  %>% 
     filter(round=='F',w_name==i_name, year(tourney_date)== year(i_date)) %>% group_by(w_name) %>% 
     summarise(nb_vic = n())
+
   
-  return(tmp$nb_vic)
+  return(as.integer(ifelse(length(tmp$nb_vic)==0,0,tmp$nb_vic)))
   
 }
 
-f_NombreTitre(Tennis_table_work,'Rafael Nadal','2017-12-31')
+f_NombreTitre(Tennis_table_work,'Diego Perez','2017-12-31')
 f_NombreTitreSaison(Tennis_table_work,'Rafael Nadal','2017-12-31')
 
 #3
@@ -92,22 +95,27 @@ f_NombreVictoire <- function(Tennis_table, i_name, i_date, i_match_num, i_round)
   tmp <- Tennis_table %>% 
     filter(w_name==i_name, (tourney_date<anydate(i_date) |tourney_date == anydate(i_date) & round_num > i_round |tourney_date == anydate(i_date) & i_round > 7 & match_num < i_match_num)) %>%
     group_by(w_name) %>% summarise(nb_vic = n())
-  return(tmp$nb_vic)
+  
+  return(as.integer(ifelse(length(tmp$nb_vic)==0,0,tmp$nb_vic)))
   
 }
+
+f_NombreVictoire(Tennis_table_work,'Joao Cunha Silva','2018-07-29','6','R32')
+f_NombreVictoire(Tennis_table_work,'Paolo Cane','2018-07-29','6','R32')
 
 f_NombreVictoire (Tennis_table_work,'Rafael Nadal','2004-01-12','12','5')
 f_NombreVictoire (Tennis_table_work,'Rafael Nadal','2004-01-12','30','2')
 
 
 #4
-f_NombreVictoireSaison <- function(Tennis_table, i_name, i_date) {
+#f_NombreVictoireSaison <- function(Tennis_table, i_name, i_date) {
   
-  tmp <- Tennis_table %>% filter(w_name==i_name, year(tourney_date) == year(i_date)) %>%
-    group_by(w_name) %>% summarise(nb_vic = n())
-  return(tmp$nb_vic)
+#  tmp <- Tennis_table %>% filter(w_name==i_name, year(tourney_date) == year(i_date)) %>%
+#    group_by(w_name) %>% summarise(nb_vic = n())
   
-}
+#  return(as.integer(ifelse(length(tmp$nb_vic)==0,0,tmp$nb_vic)))
+  
+#}
 
 
 #5
@@ -115,7 +123,8 @@ f_NombreVictoireSaisonPrecedente <- function(Tennis_table, i_name, i_date) {
   
   tmp <- Tennis_table %>% filter(w_name==i_name, year(tourney_date) == year(i_date)-1) %>%
     group_by(w_name) %>% summarise(nb_vic = n())
-  return(tmp$nb_vic)
+  
+  return(as.integer(ifelse(length(tmp$nb_vic)==0,0,tmp$nb_vic)))
   
 }
 
@@ -133,7 +142,7 @@ f_TerrainPredilection <- function(Tennis_table, i_name, i_date, i_match_num, i_r
     filter(Nom ==i_name,tourney_date<anydate(i_date) ) %>% group_by(Nom,surface) %>% 
     summarise(NbDefTerrain = n())%>% arrange(Nom) 
   
-  tmp4 <- full_join(tmp2, tmp3) 
+  tmp4 <- full_join(tmp2, tmp3, by = c("Nom","surface")) 
   tmp4[is.na(tmp4)] <- 0
   
   tmp5 <- tmp4 %>%  group_by(Nom) %>% mutate(deltaT = NbVicTerrain - NbDefTerrain) %>% 
@@ -144,19 +153,19 @@ f_TerrainPredilection <- function(Tennis_table, i_name, i_date, i_match_num, i_r
 } #Rajouter un distinct pour n'avoir qu'un seul Terrain de predilection pour gérer les égalités?
 
 
-f_TerrainPredilection(Tennis_table_work,'Rafael Nadal','2004-01-12','12','5')
+f_TerrainPredilection(Tennis_table_work,'Rafael Nadal','2017-01-12','12','5')
 
 #7
 f_surface <- function(i_surface, Tennis_table,i_name, i_date,i_match_num, i_round){
 terrain <- f_TerrainPredilection(Tennis_table,i_name, i_date, i_match_num, i_round)
-egal <- ifelse((terrain == i_surface),1,0)
+egal <- ifelse((i_surface %in% terrain),1,0)
 return(egal)
 
 }
 
 Tennis_table = Tennis_table_work;i_name='Alexander Zverev';i_date='20170101'
 f_surface('Clay', Tennis_table_work,'Rafael Nadal','2004-01-12','12','5')
-f_surface('Hard', Tennis_table_work,i_name='Rafael Nadal',i_date='20170101')
+f_surface('Hard', Tennis_table_work,i_name='Rafael Nadal',i_date='20170101','12','5')
 
 
 #############################
@@ -201,20 +210,33 @@ table_score[,c("p1_age","p2_age","p1_ht","p2_ht","p1_rank","p2_rank","p1_rank_po
 
 table_scoreV1 <- table_score[1:1000,]
 
-table_scoreV1[,c('NbTitre', 'NbTitreSaison','NbVictoire','NbVictoireSaison','NbVictoireSaisonPrec', 'SurfacePred')
+table_scoreV1[,c('NbTitre', 'NbTitreSaison','NbVictoire','NbVictoireSaisonPrec', 'SurfacePred')
             := c((f_NombreTitre(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreTitre(Tennis_table_work,i_name=p2_name,i_date=tourney_date))
                  ,(f_NombreTitreSaison(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreTitre(Tennis_table_work,i_name=p2_name,i_date=tourney_date))
-                 ,(f_NombreVictoire (Tennis_table_work,i_name=p1_name,i_round=round_num,i_matchnum=match_num,i_date=tourney_date)-f_NombreVictoire (Tennis_table_work,i_name=p2_name,i_round=round_num,i_matchnum=match_num,i_date=tourney_date))
-                 ,(f_NombreVictoireSaison(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreVictoireSaison(Tennis_table_work,i_name=p2_name,i_date=tourney_date))
+                 ,(f_NombreVictoire (Tennis_table_work,i_name=p1_name,i_round=round_num,i_match_num=match_num,i_date=tourney_date)-f_NombreVictoire (Tennis_table_work,i_name=p2_name,i_round=round_num,i_match_num=match_num,i_date=tourney_date))
                  ,(f_NombreVictoireSaisonPrecedente(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreVictoireSaisonPrecedente(Tennis_table_work,i_name=p2_name,i_date=tourney_date))
-                 ,(f_surface(Tennis_table_work,i_name=p1_name,i_date=tourney_date,i_round=round_num,i_matchnum=match_num,i_surface=surface)-f_surface(Tennis_table_work,i_name=p2_name,i_date=tourney_date,i_round=round_num,i_matchnum=match_num,i_surface=surface))),by=c(colnames(table_score))]
+                 ,(f_surface(Tennis_table_work,i_name=p1_name,i_date=tourney_date,i_round=round_num,i_match_num=match_num,i_surface=surface)-f_surface(Tennis_table_work,i_name=p2_name,i_date=tourney_date,i_round=round_num,i_match_num=match_num,i_surface=surface))),by=c(colnames(table_score))]
 
 
 
-test <- table_scoreV1[,c('NbTitre'):= c(f_NombreTitre(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreTitre(Tennis_table_work,i_name=p2_name,i_date=tourney_date)), by=c(colnames(table_scoreV1))]
+test <- table_scoreV1[,c('NbVictoireSaisonPrec'):= c(f_NombreVictoireSaisonPrecedente(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreVictoireSaisonPrecedente(Tennis_table_work,i_name=p2_name,i_date=tourney_date)), by=c(colnames(table_scoreV1))]
 
 test <- table_scoreV1  %>% mutate(NbTitre2 = f_NombreTitre(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreTitre(Tennis_table_work,i_name=p2_name,i_date=tourney_date))
 
 table(test$NbTitre)
+table(test$NbTitreSaison)
+table(test$NbVictoire)
+table(test$SurfacePred)
+table(test$NbVictoireSaisonPrec)
+a <- is.na(test$NbVictoireSaisonPrec)
+table(a)
 class(Tennis_table_work$w_name)
 class(Tennis_table_work$w_name)
+
+
+tmp <-  Tennis_table_work  %>% 
+  filter(round=='F',l_name=='Diego Perez', tourney_date<'2018-12-31') %>% group_by(l_name)
+
+#%>% 
+  summarise(nb_vic = n())
+
