@@ -1,0 +1,261 @@
+---
+  title: "Projet Tennis"
+  output: html_notebook
+---
+
+Library 
+```{r}
+#install.packages("data.table")
+library(data.table)
+#install.packages("stringr")
+library(stringr)
+#install.packages("sqldf")
+library(sqldf)
+#install.packages("knitr")
+library(knitr)
+#install.packages("anytime")
+library(anytime)
+```
+
+Import et premier retraitement sur le nom des variables
+```{r}
+Tennis_hist<-fread(file='Data/atp_matches.csv', header = T)
+#On garde uniquement les lignes où on dispose des informations détaillées de match
+Tennis_table=Tennis_hist[!is.na(minutes)&substr(tourney_name,0,9)!='Davis Cup']
+atp_players<- fread(file ='Data/atp_players.csv' ,header = F)
+colnames(atp_players)=c("Player_Id","Prenom","Nom","Main_Forte","DateNaissance","Nationalite")
+Rank<- fread(file ='Data/rankings.csv' , header = F)
+colnames(Rank)<-c("DateRanking","Numero","Player_Id","Points")
+```
+
+
+Varibale a rajouter/creer pour les statistiques faire sous 4 formes : générale,selon le head to head, selon le terrain, sur la saison
+Fatigue du joueur -> fonction du nombre de matchs fait ces derniers jours et du nombre de jeux disputés ces derniers temps
+Caracteristiques des joueurs Axel
+Endurant ou pas (exemple s il a tendance a gagné ces matchs en 5 set ou 3 pour les filles)
+Nombre de jeu par match, en cas de Tie break rajouter un jeu suppl?mentaire -> Fatigue
+Reviens d'un abandon Axel -> Blessure : binaire = 1 si reviens d'un abandon
+
+Transformation de la table tennis : Valeurs -> pourcentages
+```{r}
+#Creation de Tennis_table_work
+Tennis_table_work=Tennis_table[,.(tourney_id,tourney_name,surface,tourney_date=anydate(tourney_date),tourney_level,match_num,round,round_num=data.table(V1=c('F','SF','QF','R16','R32','R64','R128','RR','BR'),V2=1:9)$V2[match(round,data.table(V1=c('F','SF','QF','R16','R32','R64','R128','RR','BR'),V2=1:9)$V1)],minutes,score,best_of,
+w_id=winner_id,w_name=winner_name,w_age=winner_age,w_ht=winner_ht,w_rank=winner_rank,w_rank_points=winner_rank_points,w_hand=ifelse(winner_hand=='R',1,0) ,w_seed=winner_seed
+,w_ace=w_ace/w_1stIn,w_df=w_df/w_svpt,w_1stIn=w_1stIn/w_svpt,w_1stWon=w_1stWon/w_1stIn,w_2ndWon=w_2ndWon/(w_svpt-w_1stIn),w_bpSaved=w_bpSaved/w_bpFaced,w_bpMean=l_bpFaced/l_SvGms,w_bpConverted=(l_bpFaced-l_bpSaved)/(l_bpFaced),w_svptWon=(w_1stWon+w_2ndWon)/w_svpt,w_returnPtWon=(l_svpt-l_1stWon-l_2ndWon)/l_svpt,w_1stReturnWon=(l_1stIn-l_1stWon)/l_1stIn,w_2ndReturnWon=((l_svpt-l_1stIn)-l_2ndWon)/(l_svpt-l_1stIn)
+,l_id=loser_id,l_name=loser_name,l_age=loser_age,l_ht=loser_ht,l_rank=loser_rank,l_rank_points=loser_rank_points,l_hand=ifelse(loser_hand=='R',1,0),l_seed=loser_seed
+,l_ace=l_ace/l_1stIn,l_df=l_df/l_svpt,l_1stIn=l_1stIn/l_svpt,l_1stWon=l_1stWon/l_1stIn,l_2ndWon=l_2ndWon/(l_svpt-l_1stIn),l_bpSaved=l_bpSaved/l_bpFaced,l_bpMean=w_bpFaced/w_SvGms,l_bpConverted=(w_bpFaced-w_bpSaved)/(w_bpFaced),l_svptWon=(l_1stWon+l_2ndWon)/l_svpt,l_returnPtWon=(w_svpt-w_1stWon-w_2ndWon)/w_svpt,l_1stReturnWon=(w_1stIn-w_1stWon)/w_1stIn,l_2ndReturnWon=((w_svpt-w_1stIn)-w_2ndWon)/(w_svpt-w_1stIn)
+)]
+#Modification Date et suppression des valeurs NaN sur les bp_saved
+Tennis_table_work[,date:=anydate(tourney_date)][,.(date,tourney_date)]
+Tennis_table_work[is.nan(w_bpSaved),':='(w_bpSaved=1)]
+Tennis_table_work[is.nan(l_bpSaved),':='(l_bpSaved=1)]
+```
+
+Mélange de l'ordre des joueurs
+```{r}
+table_score=Tennis_table_work[,.(tourney_id,tourney_name,surface,tourney_date,tourney_level,match_num,round,round_num,w_id,w_name,w_age,w_ht,w_rank,w_rank_points,w_hand,w_seed,l_id,l_name,l_age,l_ht,l_rank,l_rank_points,l_hand,l_seed)]
+nb_row=nrow(table_score)
+table_score[,coin:=round((runif(nb_row,0,1)),0)]
+
+# Tennis_table_work[coin==1,c("p1_id","p1_name","p1_age","p1_ht","p1_rank","p1_rank_points","p1_hand","p1_seed","p1_ace","p1_df","p1_1stIn","p1_1stWon","p1_2ndWon","p1_bpSaved","p1_bpMean","p1_bpConverted","p1_svptWon","p1_returnPtWon","p1_1stReturnWon","p1_2ndReturnWon","p2_id","p2_name","p2_age","p2_ht","p2_rank","p2_rank_points","p2_hand","p2_seed","p2_ace","p2_df","p2_1stIn","p2_1stWon","p2_2ndWon","p2_bpSaved","p2_bpMean","p2_bpConverted","p2_svptWon","p2_returnPtWon","p2_1stReturnWon","p2_2ndReturnWon") := list(w_id,w_name,w_age,w_ht,w_rank,w_rank_points,w_hand,w_seed,w_ace,w_df,w_1stIn,w_1stWon,w_2ndWon,w_bpSaved,w_bpMean,w_bpConverted,w_svptWon,w_returnPtWon,w_1stReturnWon,w_2ndReturnWon,l_id,l_name,l_age,l_ht,l_rank,l_rank_points,l_hand,l_seed,l_ace,l_df,l_1stIn,l_1stWon,l_2ndWon,l_bpSaved,l_bpMean,l_bpConverted,l_svptWon,l_returnPtWon,l_1stReturnWon,l_2ndReturnWon)]
+# Tennis_table_work[coin==0,c("p1_id","p1_name","p1_age","p1_ht","p1_rank","p1_rank_points","p1_hand","p1_seed","p1_ace","p1_df","p1_1stIn","p1_1stWon","p1_2ndWon","p1_bpSaved","p1_bpMean","p1_bpConverted","p1_svptWon","p1_returnPtWon","p1_1stReturnWon","p1_2ndReturnWon","p2_id","p2_name","p2_age","p2_ht","p2_rank","p2_rank_points","p2_hand","p2_seed","p2_ace","p2_df","p2_1stIn","p2_1stWon","p2_2ndWon","p2_bpSaved","p2_bpMean","p2_bpConverted","p2_svptWon","p2_returnPtWon","p2_1stReturnWon","p2_2ndReturnWon") := list(l_id,l_name,l_age,l_ht,l_rank,l_rank_points,l_hand,l_seed,l_ace,l_df,l_1stIn,l_1stWon,l_2ndWon,l_bpSaved,l_bpMean,l_bpConverted,l_svptWon,l_returnPtWon,l_1stReturnWon,l_2ndReturnWon,w_id,w_name,w_age,w_ht,w_rank,w_rank_points,w_hand,w_seed,w_ace,w_df,w_1stIn,w_1stWon,w_2ndWon,w_bpSaved,w_bpMean,w_bpConverted,w_svptWon,w_returnPtWon,w_1stReturnWon,w_2ndReturnWon)]
+
+table_score[coin==1,c("p1_id","p1_name","p1_age","p1_ht","p1_rank","p1_rank_points","p1_hand","p1_seed","p2_id","p2_name","p2_age","p2_ht","p2_rank","p2_rank_points","p2_hand","p2_seed") := list(w_id,w_name,w_age,w_ht,w_rank,w_rank_points,w_hand,w_seed,l_id,l_name,l_age,l_ht,l_rank,l_rank_points,l_hand,l_seed)]
+table_score[coin==0,c("p1_id","p1_name","p1_age","p1_ht","p1_rank","p1_rank_points","p1_hand","p1_seed","p2_id","p2_name","p2_age","p2_ht","p2_rank","p2_rank_points","p2_hand","p2_seed") := list(l_id,l_name,l_age,l_ht,l_rank,l_rank_points,l_hand,l_seed,w_id,w_name,w_age,w_ht,w_rank,w_rank_points,w_hand,w_seed)]
+
+table_score[,c("w_id","w_name","w_age","w_ht","w_rank","w_rank_points","w_hand","w_seed","l_id","l_name","l_age","l_ht","l_rank","l_rank_points","l_hand","l_seed"):=NULL]
+
+table_score[,c("age","ht","rank","rank_points","hand","seed"):=list(p1_age-p2_age,p1_ht-p2_ht,p1_rank-p2_rank,p1_rank_points-p2_rank_points,p1_hand-p2_hand,p1_seed-p2_seed)]
+table_score[,c("p1_age","p2_age","p1_ht","p2_ht","p1_rank","p2_rank","p1_rank_points","p2_rank_points","p1_hand","p2_hand","p1_seed","p2_seed"):=NULL]
+```
+
+Fonction d'historique
+```{r}
+f_replaceNA = function(DT) {
+  for (j in seq_len(ncol(DT)))
+    set(DT,which(is.na(DT[[j]])),j,0)
+}
+###f_historique renvoi les statistiques moyennes d'un joueur en fonctions de différentes variables
+### Variable obligatoire :
+####Tennis_table_work = table d'historique des matchs, doit contenir les colonnes :  "tourney_id"     "tourney_name"   "surface"        "tourney_date"   "tourney_level"  "match_num"      "w_id"           "w_name"         "w_age"         "w_ht"           "w_rank"         "w_rank_points"  "w_hand"         "w_seed"         "w_ace"          "w_df"           "w_1stIn"        "w_1stWon"      "w_2ndWon"       "w_bpSaved"      "w_bpMean"       "w_bpConverted"  "w_svptWon"      "w_returnPtWon"  "w_1stReturnWon" "w_2ndReturnWon" "l_id"          "l_name"         "l_age"          "l_ht"           "l_rank"         "l_rank_points"  "l_hand"         "l_seed"         "l_ace"          "l_df"          "l_1stIn"        "l_1stWon"       "l_2ndWon"       "l_bpSaved"      "l_bpMean"       "l_bpConverted"  "l_svptWon"      "l_returnPtWon"  "l_1stReturnWon"  "l_2ndReturnWon"
+####i_name = Nom du joueur
+### Variables Optionelles : 
+####i_date = Date à partir de laquelle on considère l'historique
+####i_surface = Type de surface -> 'Hard'|'Clay'|'Grass'|'None'
+####i_tournament = Nom du tournoi -> 'Barcelona'|Bournemouth'|'US Open'
+####i_opponent = Nom de l'opposant -> 'Raphael Nadal'|'Roger Federer'|'Alexander Zverev'
+####i_row = Nombre de matchs à prendre en compte
+####i_duree = Durée en jours d'historique à prendre en compte
+f_historique <- function(Tennis_table_work,i_name,i_date=NULL,i_surface=NULL,i_tournament=NULL,i_opponent=NULL,i_row=NULL,i_duree=NULL, i_round=NULL, i_matchnum=NULL) {
+  historique=rbind(Tennis_table_work[w_name==i_name,.(tourney_date,tourney_name,surface,match_num,round_num,opponent=l_name,ace=w_ace,df=w_df,stIn=w_1stIn,stWon=w_1stWon,ndWon=w_2ndWon,bpSaved=w_bpSaved,bpMean=w_bpMean,bpConverted=w_bpConverted,svptWon=w_svptWon,returnPtWon=w_returnPtWon,stReturnWon=w_1stReturnWon,ndReturnWon=w_2ndReturnWon)][order(-tourney_date)],
+  Tennis_table_work[l_name==i_name,.(tourney_date,tourney_name,surface,match_num,round_num,opponent=w_name,ace=l_ace,df=l_df,stIn=l_1stIn,stWon=l_1stWon,ndWon=l_2ndWon,bpSaved=l_bpSaved,bpMean=l_bpMean,bpConverted=l_bpConverted,svptWon=l_svptWon,returnPtWon=l_returnPtWon,stReturnWon=l_1stReturnWon,ndReturnWon=l_2ndReturnWon)])[order(-tourney_date)]
+  
+  if (!is.null(i_date)) {historique=historique[tourney_date<anydate(i_date)|(anydate(i_date)==tourney_date&round_num>i_round)|(anydate(i_date)==tourney_date&i_round>7&match_num<i_matchnum)]}
+  #AJOUTER match_num<match_num ou round<i_round pour les tourney_date=i_date
+  #OU i_date==tourney_date&round_num>i_round F=1 SF=2 QF=3 etc OU i_round=='RR' i_matchnum<match_num
+  if ((!is.null(i_date))&(!is.null(i_duree))) {historique=historique[difftime(anydate(i_date),tourney_date)<=i_duree]}
+  if (!is.null(i_surface)) {historique=historique[surface==i_surface]}
+  if (!is.null(i_tournament)) {historique=historique[tourney_name==i_tournament]}
+  if (!is.null(i_opponent)) {historique=historique[opponent==i_opponent]}
+  if (!is.null(i_row)) {historique=historique[,head(.SD,i_row)]}
+  
+  Historique_Mean=historique[,.(ace,df,stIn,stWon,ndWon,bpSaved,bpMean,bpConverted,svptWon,returnPtWon,stReturnWon,ndReturnWon)][,lapply(.SD, function(x) mean(na.omit(x[is.finite(x)])))]
+  f_replaceNA(Historique_Mean)
+  return(Historique_Mean)
+}
+###TEST
+Tennis_table_work[,max(tourney_date)]
+i_name='Alexander Zverev';i_opponent='Rafael Nadal';i_date='20170101'
+Tennis_table_work[(w_name==i_name&l_name==i_opponent)|(l_name==i_name&w_name==i_opponent)]
+f_historique(Tennis_table_work,i_name)
+f_historique(Tennis_table_work,i_name=i_name,i_opponent=i_opponent)
+f_historique(Tennis_table_work,i_name='Menno Oosting',i_date='1991-07-29',i_round=5,i_matchnum = 1)-f_historique(Tennis_table_work,i_name='Menno Oosting',i_date='1991-01-29',i_round=5,i_matchnum = 1)
+names(f_historique(Tennis_table_work,i_name=i_name,i_opponent=i_opponent,i_row=1))
+f_historique(Tennis_table_work,i_name=i_name,i_opponent=i_opponent,i_tournament = 'Australian Open')
+c(test)
+##Remplacer les NaN par 0 ?
+```
+
+Stats joueurs match
+Attention : 557 match avec svgms=0 !!!
+```{r}
+```
+
+
+
+
+Creation du nombre de jeu et du nombre de Set
+Creation de la notion de fatigue
+```{r}
+Tennis_table[,.(score,base::sum(as.numeric(unlist(str_extract_all(gsub("\\(\\d\\)","",score), "[0-9]+"))))),by=c(colnames(Tennis_table))]
+#### Calcul le nombre de jeux à partir du score
+### Variable obligatoire :
+####Tennis_table_work = table d'historique des matchs
+####score = Nom de la variable de score
+f_NombreDeJeu <- function(Tennis_table_work,score) {
+  return(Tennis_table_work[,.(NbJeuJoue=sum(as.numeric(unlist(str_extract_all(gsub("\\(\\d\\)","",score), "[0-9]+"))))),by=c(colnames(Tennis_table_work))])
+}
+#### Calcul le nombre de jeux précdemment joués (ou le temps)
+### Variable obligatoire :
+####Tennis_table_work = table d'historique des matchs
+####i_name = Nom du joueur
+####i_date = Date de calcul
+####i_duree = Duree à prendre en compte (en jour)
+f_fatigue <- function(Tennis_table_work,i_name,i_date,i_duree=NULL, i_nbmatchs, i_round, i_matchnum) {
+  #i_round_num=switch(i_round,'F'=1,'SF'=2,'QF'=3,'R16'=4,'R32'=5,'R64'=6,'R128'=7,'RR'=8,'BR'=9)
+  historique=rbind(
+    Tennis_table_work[w_name==i_name]
+    ,Tennis_table_work[l_name==i_name]
+    )[anydate(i_date)==anydate(tourney_date)][i_round<round_num|(i_round>7&match_num<i_matchnum)]
+  
+  # historique=rbind(
+  #   Tennis_table_work[winner_name==i_name]
+  #   ,Tennis_table_work[loser_name==i_name]
+  #   )[anydate(i_date)>anydate(tourney_date)][difftime(anydate(i_date),anydate(tourney_date))<=i_duree]
+  
+  Historique_Sum=head(historique[order(round_num),.(NbJeuJoue,minutes)],i_nbmatchs)[,lapply(.SD, function(x) sum(na.omit(x[is.finite(x)])))]
+  
+  return(Historique_Sum)
+}
+```
+TESTS FATIGUES
+```{r}
+##################TESTS
+Tennis_table_work[w_name=='Rafael Nadal'&tourney_date=="2018-05-28"]
+f_fatigue(Tennis_table_work,i_name = "Rafael Nadal",i_date = '2018-05-28',i_round = 4,i_nbmatchs = 1, i_matchnum=1)
+start_time <- Sys.time()
+Table_Fatigue=Tennis_table_work[,.(fatigue=(f_fatigue(Tennis_table_work,i_name=w_name,i_date=tourney_date,i_duree=NULL, i_nbmatchs=2, i_round=round, i_matchnum=match_num)[,NbJeuJoue]-f_fatigue(Tennis_table_work,i_name=l_name,i_date=tourney_date,i_duree=NULL, i_nbmatchs=2, i_round=round, i_matchnum=match_num)[,NbJeuJoue])),by=c(colnames(Tennis_table_work))]
+end_time <- Sys.time()
+time=end_time - start_time
+nrow(Table_Fatigue[fatigue>0])/nrow(Table_Fatigue[fatigue!=0])#42%
+nrow(Table_Fatigue[fatigue<0])/nrow(Table_Fatigue[fatigue!=0])#58%
+```
+
+Notion d'endurance
+```{R}
+#### Calcul le nombre de jeux précdemment joués (ou le temps)
+### Variable obligatoire :
+####Tennis_table_work = table d'historique des matchs
+####i_name = Nom du joueur
+####i_date = Date de calcul
+####i_duree = Duree à prendre en compte (en jour)
+f_NbSetsJoues<- function(score) {
+  return(length(str_extract_all(gsub("\\(\\d\\)","",'7-5 6-2 prout 8-5(8)'), "[0-9]+")[[1]])/2)
+}
+f_endurance<- function(Tennis_table_work,i_name,i_date, i_round='BR') {
+  i_round_num=switch(i_round,'F'=1,'SF'=2,'QF'=3,'R16'=4,'R32'=5,'R64'=6,'R128'=7,'RR'=8,'BR'=9)
+  historique=Tennis_table_work[w_name==i_name|l_name==i_name][anydate(i_date)>tourney_date|(anydate(i_date)==tourney_date&i_round_num<round_num)]
+  historique[,Nbsets:=f_NbSetsJoues(score)]
+  match_court = nrow(historique[w_name==i_name&best_of>Nbsets])/nrow(historique[best_of>Nbsets])
+  match_lon = nrow(historique[w_name==i_name&best_of==Nbsets])/nrow(historique[best_of==Nbsets])
+  
+  return(ifelse(match_lon>match_court,1,0))
+}
+i_name='Rafael Nadal'; i_date='2018-01-01';i_round_num=9
+historique=Tennis_table_work[w_name==i_name|l_name==i_name][anydate(i_date)>tourney_date|(anydate(i_date)==tourney_date&i_round_num<round_num)]
+  historique[,Nbsets:=f_NbSetsJoues(score)]
+  match_court = nrow(historique[w_name==i_name&best_of>Nbsets])/nrow(historique[best_of>Nbsets])
+  match_lon = nrow(historique[w_name==i_name&best_of==Nbsets])/nrow(historique[best_of==Nbsets])
+ifelse(match_lon>match_court,1,0)
+f_endurance(Tennis_table_work,i_name='Rafael Nadal',i_date='20180901')
+```
+
+Creation d'un flag abandon => on ne fait pas la distinction entre abandonn? pendant le match 
+et abandonner avant le match, mode du flag ? valider
+```{r}
+Abandon<-gsub("[[:space:]]","",gsub("\\d+","",gsub("[[:punct:]]" ,"",Tennis_table$score)))
+Abandon
+Abandonv2<-gsub("[^A-Za-z]","",Tennis_table$score)
+####Ajoute à Tennis_Table la colonne abandon (0 ou 1)
+f_abandon <- function (Tennis_table,score) {
+  return(Tennis_table[,abandon:=ifelse(gsub("[^A-Za-z]","",score)!="",1,0)])
+}
+f_abandon(Tennis_table_work,"score")
+#### Renvoie si le joueur i_name est de retour d'abandon à la date i_date
+f_retour_abandon <- function(Tennis_table, i_name, i_date) {
+  abandon=Tennis_table[(w_name==i_name|l_name==i_name)][tourney_date<anydate(i_date)][head(order(-xtfrm(tourney_date),round_num,-match_num),1),c(ifelse(gsub("[^A-Za-z]","",score)!=""&l_name==i_name,1,0))]
+  retour=ifelse(is.numeric(abandon),abandon,0)
+  return(retour)
+}
+i_name='Rafael Nadal'; i_date='2018-01-01'
+Tennis_table_work[(w_name==i_name|l_name==i_name)][tourney_date<i_date][head(order(-xtfrm(tourney_date),-match_num),1),ifelse(gsub("[^A-Za-z]","",score)!=""&l_name==i_name,1,0)]
+f_retour_abandon(Tennis_table_work,i_name,i_date)==1
+start_time <- Sys.time()
+Table_Abandon=Tennis_table_work[,.(abandon_diff=(f_retour_abandon(Tennis_table_work,i_name=w_name,i_date=tourney_date)-f_retour_abandon(Tennis_table_work,i_name=l_name,i_date=tourney_date))),by=c(colnames(Tennis_table_work))]
+end_time <- Sys.time()
+time=end_time - start_time
+nrow(Table_Abandon[abandon_diff>0])/nrow(Table_Abandon[abandon_diff!=0])#49%
+nrow(Table_Abandon[abandon_diff<0])/nrow(Table_Abandon[abandon_diff!=0])#51%
+```
+
+Création Base de Score
+```{r}
+###Application
+Tennis_table_work=f_NombreDeJeu(Tennis_table_work,"score")
+
+start_time <- Sys.time()
+table_score[,c("hist_ace","hist_df","hist_1stIn","hist_1stWon","hist_2ndWon","hist_bpSaved","hist_bpMean","hist_bpConverted","hist_svptWon","hist_returnPtWon","hist_1stReturnWon","hist_2ndReturnWon"
+               ,"Dix_ace","Dix_df","Dix_1stIn","Dix_1stWon","Dix_2ndWon","Dix_bpSaved","Dix_bpMean","Dix_bpConverted","Dix_svptWon","Dix_returnPtWon","Dix_1stReturnWon","Dix_2ndReturnWon"
+               ,"h2h_ace","h2h_df","h2h_1stIn","h2h_1stWon","h2h_2ndWon","h2h_bpSaved","h2h_bpMean","h2h_bpConverted","h2h_svptWon","h2h_returnPtWon","h2h_1stReturnWon","h2h_2ndReturnWon"
+               ,"tourn_ace","tourn_df","tourn_1stIn","tourn_1stWon","tourn_2ndWon","tourn_bpSaved","tourn_bpMean","tourn_bpConverted","tourn_svptWon","tourn_returnPtWon","tourn_1stReturnWon","tourn_2ndReturnWon"
+               ,"fatigue"
+               ,"abandon_diff")
+            := c((f_historique(Tennis_table_work,i_name=p1_name,i_surface=surface,i_round=round_num,i_matchnum=match_num)-f_historique(Tennis_table_work,i_name=p2_name,i_surface=surface,i_round=round_num,i_matchnum=match_num))
+                ,(f_historique(Tennis_table_work,i_name=p1_name,i_surface=surface,i_round=round_num,i_matchnum=match_num,i_row=10)-f_historique(Tennis_table_work,i_name=p2_name,i_surface=surface,i_round=round_num,i_matchnum=match_num,i_row=10))
+                ,(f_historique(Tennis_table_work,i_name=p1_name,i_surface=surface,i_round=round_num,i_matchnum=match_num,i_opponent=p2_name)-f_historique(Tennis_table_work,i_name=p2_name,i_surface=surface,i_round=round_num,i_matchnum=match_num,i_opponent=p1_name))
+                ,(f_historique(Tennis_table_work,i_name=p1_name,i_tournament=tourney_name,i_round=round_num,i_matchnum=match_num)-f_historique(Tennis_table_work,i_name=p2_name,i_tournament=tourney_name,i_round=round_num,i_matchnum=match_num))
+                ,(f_fatigue(Tennis_table_work,i_name=p1_name,i_date=tourney_date,i_duree=NULL, i_nbmatchs=2, i_round=round, i_matchnum=match_num)[,NbJeuJoue]-f_fatigue(Tennis_table_work,i_name=p2_name,i_date=tourney_date,i_duree=NULL, i_nbmatchs=2, i_round=round, i_matchnum=match_num)[,NbJeuJoue])
+                ,(f_retour_abandon(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_retour_abandon(Tennis_table_work,i_name=p2_name,i_date=tourney_date))),by=c(colnames(table_score))]
+end_time <- Sys.time()
+time=end_time - start_time
+
+save(table_score,file="Data/table_score.RData")
+load("Data/table_score.RData")
+training_table=table_score
+training_table[,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
+training_table[,cible:=as.factor(coin)]
+training_table[,coin := NULL]
+f_replaceNA(training_table)
+library(randomForest)
+rf=randomForest(as.matrix(training_table[,!"cible"]),factor(training_table[,cible]),ntree = 500,  na.action = na.omit)
+```
