@@ -10,7 +10,7 @@ library(anytime)
 #Mis en place de l'environnement de travail
 setwd("C:/Users/Greg/Documents/Certificat Data Science/Projet/BDD/tennis_atp-master")
 setwd("//FRSHARES0250.france.intra.corp/Planif_users/b06713/Data Science ENSAE/Certificat Data Science/tennis_atp-master")
-Tennis_table<-fread(file="atp_matches.csv", header = T,fill=T)
+Tennis_hist<-fread(file="atp_matches.csv", header = T,fill=T)
 Tennis_table<-fread(file="atp_matches.csv", header = T,fill=T)
 head(Tennis_table)
 #test2
@@ -592,7 +592,8 @@ f_Headtohead <- function(Tennis_table_work,i_name,i_date=NULL,i_surface=NULL,i_t
   historique=rbind(Tennis_table_work[(w_name==i_name & l_name==i_opponent),.(w_name,tourney_date,tourney_name,surface,match_num,round_num,opponent=l_name)],
                    Tennis_table_work[(l_name==i_name & w_name==i_opponent),.(w_name,tourney_date,tourney_name,surface,match_num,round_num,opponent=w_name)])[order(-tourney_date)]
   if (!is.null(i_date)) {historique=historique[tourney_date<anydate(i_date)|(anydate(i_date)==tourney_date&round_num>i_round)|(anydate(i_date)==tourney_date&i_round>7&match_num<i_matchnum)]}
-  #AJOUTER match_num<match_num ou round<i_round pour les tourney_date=i_date
+  
+  print(historique)#AJOUTER match_num<match_num ou round<i_round pour les tourney_date=i_date
   #OU i_date==tourney_date&round_num>i_round F=1 SF=2 QF=3 etc OU i_round=='RR' i_matchnum<match_num
   #if ((!is.null(i_date))&(!is.null(i_duree))) {historique=historique[difftime(anydate(i_date),tourney_date)<=i_duree]}
   #if (!is.null(i_surface)) {historique=historique[surface==i_surface]}
@@ -601,35 +602,33 @@ f_Headtohead <- function(Tennis_table_work,i_name,i_date=NULL,i_surface=NULL,i_t
   Historique_Mean=historique[,.(w_name)][,lapply(.SD, function(x) mean(as.numeric((i_name==w_name))))]
   return(Historique_Mean)
 }
-test<-f_Headtohead(Tennis_table_work,i_name = "Rafael Nadal",i_opponent = "Roger Federer",i_date = "2018-01-01",i_round=7, i_row=5)
+test<-f_Headtohead(Tennis_table_work,i_name = "Rafael Nadal",i_opponent = "Roger Federer",i_date = "2018-01-01",i_round=7, i_row=5,i_match=16)
+test
 f_VicT <- function(Tennis_table_work,i_name,i_date=NULL,i_surface=NULL,i_tournament=NULL,i_opponent=NULL,i_row=NULL,i_duree=NULL, i_round=NULL, i_matchnum=NULL) {
   historique1=Tennis_table_work[(w_name==i_name | l_name==i_name),.(w_name,tourney_date,tourney_name,surface,match_num,round_num,opponent=l_name)][order(-tourney_date)]
   historique2=Tennis_table_work[(w_name==i_opponent | l_name==i_opponent),.(w_name,tourney_date,tourney_name,surface,match_num,round_num,opponent=w_name)][order(-tourney_date)]
-  print(head(historique1))
-  print(head(historique2))
-  if (!is.null(i_date)) {historique1=historique1[tourney_date<anydate(i_date)|(anydate(i_date)==tourney_date&round_num>i_round)|(anydate(i_date)==tourney_date&i_round>7&match_num<i_matchnum)]}
-  print(head(historique1))#AJOUTER match_num<match_num ou round<i_round pour les tourney_date=i_date
+  if (!is.null(i_date)) {historique1=historique1[tourney_date<anydate(i_date)|(anydate(i_date)==tourney_date&round_num>i_round)]}
+  #AJOUTER match_num<match_num ou round<i_round pour les tourney_date=i_date
   #OU i_date==tourney_date&round_num>i_round F=1 SF=2 QF=3 etc OU i_round=='RR' i_matchnum<match_num
   if (!is.null(i_surface)) {historique1=historique1[surface==i_surface]}
-  print(head(historique1))if (!is.null(i_row)) {historique1=historique1[,head(.SD,i_row)]}
-  if (!is.null(i_date)) {historique1=historique1[tourney_date<anydate(i_date)|(anydate(i_date)==tourney_date&round_num>i_round)|(anydate(i_date)==tourney_date&i_round>7&match_num<i_matchnum)]}
-  print(head(historique1))#AJOUTER match_num<match_num ou round<i_round pour les tourney_date=i_date
+  historique1_=historique1[1:min(nrow(historique1),i_row)]
+  # if (!is.null(i_date)) {historique1=historique1[tourney_date<anydate(i_date)|(anydate(i_date)==tourney_date&round_num>i_round)|(anydate(i_date)==tourney_date&i_round>7&match_num<i_matchnum)]}
+  #AJOUTER match_num<match_num ou round<i_round pour les tourney_date=i_date
   #OU i_date==tourney_date&round_num>i_round F=1 SF=2 QF=3 etc OU i_round=='RR' i_matchnum<match_num
-  if (!is.null(i_date)) {historique2=historique2[tourney_date<anydate(i_date)|(anydate(i_date)==tourney_date&round_num>i_round)|(anydate(i_date)==tourney_date&i_round>7&match_num<i_matchnum)]}
+  if (!is.null(i_date)) {historique2=historique2[tourney_date<anydate(i_date)|(anydate(i_date)==tourney_date&round_num>i_round)]}
   if (!is.null(i_surface)) {historique2=historique2[surface==i_surface]}
-  if (!is.null(i_row)) {historique2=historique2[,head(.SD,i_row)]}
-  if (!is.null(i_date)) {historique2=historique2[tourney_date<anydate(i_date)|(anydate(i_date)==tourney_date&round_num>i_round)|(anydate(i_date)==tourney_date&i_round>7&match_num<i_matchnum)]}
-  print(head(historique1))
-  print(head(historique2))
-  Historique_Mean1=historique1[,.(w_name)][,lapply(.SD, function(x) mean(as.numeric((i_name==w_name))))]
-  Historique_Mean2=historique2[,.(w_name)][,lapply(.SD, function(x) mean(as.numeric((i_opponent==w_name))))]
- print(Historique_Mean1)
- print(Historique_Mean2)
-   Historique_Mean1_<-ifelse(is.nan(as.numeric(Historique_Mean1)),0,as.numeric(Historique_Mean1)) 
+  # if (!is.null(i_row)) {historique2=historique2[,head(.SD,i_row)]}
+  # if (!is.null(i_date)) {historique2=historique2[tourney_date<anydate(i_date)|(anydate(i_date)==tourney_date&round_num>i_round)|(anydate(i_date)==tourney_date&i_round>7&match_num<i_matchnum)]}
+  historique2_=historique2[1:min(nrow(historique2),i_row)]
+  Historique_Mean1=mean(as.numeric(historique1_$w_name==i_name))
+  Historique_Mean2=mean(as.numeric(historique2_$w_name==i_opponent))
+  Historique_Mean=Historique_Mean1-Historique_Mean2
+  Historique_Mean1_<-ifelse(is.nan(as.numeric(Historique_Mean1)),0,as.numeric(Historique_Mean1)) 
   Historique_Mean2_<-ifelse(is.nan(as.numeric(Historique_Mean2)),0,as.numeric(Historique_Mean2))
-  Historique_Mean=Historique_Mean1_-Historique_Mean2_
+  Historique_Mean_=Historique_Mean1_-Historique_Mean2_
   return(Historique_Mean)
 }
+test<-f_VicT(Tennis_table_work,i_name="Rafael Nadal",i_opponent="Roger Federer",i_date = "2018-05-05",i_round=7, i_row=10,i_surface="Clay")
 test
 
 # f_VicTSurface <- function(Tennis_table_work,i_name,i_date=NULL,i_surface=NULL,i_tournament=NULL,i_opponent=NULL,i_row=NULL,i_duree=NULL, i_round=NULL, i_matchnum=NULL) {
@@ -655,7 +654,6 @@ test
 #   Historique_Mean=Historique_Mean1_-Historique_Mean2_
 #   return(Historique_Mean)
 # }
-test<-f_VicT(Tennis_table_work,i_name="Rafael Nadal",i_opponent="Roger Federer",i_date = "2018-05-05",i_round=7, i_row=10,i_surface="Clay")
 test
 ###
 ###
