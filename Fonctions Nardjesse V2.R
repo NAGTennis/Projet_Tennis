@@ -208,14 +208,15 @@ table_score[,c("p1_age","p2_age","p1_ht","p2_ht","p1_rank","p2_rank","p1_rank_po
 
 ################
 
-table_scoreV1 <- table_score[1:1000,]
+table_scoreV1 <- table_score[12,]
 
 table_scoreV1[,c('NbTitre', 'NbTitreSaison','NbVictoire','NbVictoireSaisonPrec', 'SurfacePred')
             := c((f_NombreTitre(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreTitre(Tennis_table_work,i_name=p2_name,i_date=tourney_date))
-                 ,(f_NombreTitreSaison(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreTitre(Tennis_table_work,i_name=p2_name,i_date=tourney_date))
+                 ,(f_NombreTitreSaison(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreTitreSaison(Tennis_table_work,i_name=p2_name,i_date=tourney_date))
                  ,(f_NombreVictoire (Tennis_table_work,i_name=p1_name,i_round=round_num,i_match_num=match_num,i_date=tourney_date)-f_NombreVictoire (Tennis_table_work,i_name=p2_name,i_round=round_num,i_match_num=match_num,i_date=tourney_date))
                  ,(f_NombreVictoireSaisonPrecedente(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreVictoireSaisonPrecedente(Tennis_table_work,i_name=p2_name,i_date=tourney_date))
-                 ,(f_surface(Tennis_table_work,i_name=p1_name,i_date=tourney_date,i_round=round_num,i_match_num=match_num,i_surface=surface)-f_surface(Tennis_table_work,i_name=p2_name,i_date=tourney_date,i_round=round_num,i_match_num=match_num,i_surface=surface))),by=c(colnames(table_score))]
+                 ,(f_surface(Tennis_table_work,i_name=p1_name,i_date=tourney_date,i_round=round_num,i_match_num=match_num,i_surface=surface)-f_surface(Tennis_table_work,i_name=p2_name,i_date=tourney_date,i_round=round_num,i_match_num=match_num,i_surface=surface)))
+            ,by=c(colnames(table_score))]
 
 
 
