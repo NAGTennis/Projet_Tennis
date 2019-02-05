@@ -1,0 +1,305 @@
+---
+title: "Régression logistique - Premier jet"
+author: "Nardjesse"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Préparation des tables train et test
+
+
+```{r cars}
+library(lubridate)
+#library(anytime)
+library(data.table)
+load('C:/Users/nbensmina/Desktop/PROJET/table_score.RData')
+
+
+training_table <- table_score[year(table_score$tourney_date)<2018,]
+test_table <- table_score[year(table_score$tourney_date)==2018,]
+
+
+
+
+training_table[,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
+test_table[,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
+
+training_table[,cible:=as.factor(coin)]
+training_table[,coin := NULL]
+
+f_replaceNA = function(DT) {
+  
+  for (j in seq_len(ncol(DT)))
+    
+    set(DT,which(is.na(DT[[j]])),j,0)
+  
+}
+
+f_replaceNA(training_table)
+f_replaceNA(test_table)
+```
+
+## Mod?lisation
+**Sans s?lection de variables dans un premier temps : Mod?le complet**
+
+```{r pressure}
+mod <- glm(cible~., data= training_table, family=binomial)
+summary(mod)
+```
+**AIC ?norme : 49 054, il y a un travaille ? faire sur la selection de variables/mod?le?(par r?gularisation : ridge, lasso,Elastic Net) afin de resteindre  les probl?mes decolin?arit?. A premi?re vue, toutes ne sont pas significatives ...**
+
+## Analyse des r?sidus
+
+```{r}
+plot(rstudent(mod), type = "p", cex = 0.5, ylab = "R?sidus studentis?s ", 
+     col = "lightblue", ylim = c(-3, 3))
+abline(h = c(-2, 2), col = "red")
+```
+
+## Predict
+
+```{r}
+pred <- predict(mod,newdata = test_table[,!'coin'],se=TRUE)
+pred <- within(pred, {
+  PredictedProb <- plogis(fit)
+  LL <- plogis(fit - (1.96 * se.fit))
+  UL <- plogis(fit + (1.96 * se.fit))
+})
+
+pred2 <- as.data.table(pred)
+
+
+pred3 <- cbind(pred2, pred_coin = factor(ifelse(pred2$PredictedProb > 
+                                                       0.5, 1, 0)))
+
+```
+
+## Matrice de confusion
+
+```{r}
+confusion <- as.matrix(table(pred3$pred_coin, test_table$coin))
+confusion
+
+```
+
+**Le taux d'erreur me parait bien bas, surapprentisage?**
+Seulement 286 mal class?s ...
+L'?chantillon test contient ? peine 3% des donn?es, l'augmenter pour arriver au moins ? 20%.
+
+##Comparaison avec le classement ATP
+
+```{r}
+cible <- c(test_table[,coin])
+test <- cbind(pred3[,c('pred_coin')],cible)
+
+
+erreur <- c()
+erreur["mod"]=0
+erreur["atp"]=0
+
+for (i in 1:2259) {
+  if (test[i,1]!=test[i,2]) {erreur["mod"]=erreur["mod"]+1}
+  if ((test_table[i,coin]==0 & test_table[i,rank]<0) | (test_table[i,coin]==1 & test_table[i,rank]>0)) {erreur["atp"]=erreur["atp"]+1}
+  }
+head(erreur)
+```
+
+Dans un deuxi?me temps, passer ? la validation crois?e.
+R?gularisation avec p?nalisation LASSO, RIDGE, ELASTIC NET et comparer les qualit?s de pr?vision des mod?les obtenus ...
+Choix de la m?trique.
+Courbe ROC
+
+
+## Test en ne conservant que quelques unes des variables significatives
+
+```{r}
+mod2 <- glm(cible~age+rank+rank_points+hist_df+hist_1stReturnWon+Dix_2ndReturnWon+SurfacePred+NbVictoireSaisonPrec +NbTitre+TxVictSurface10 +Head2Head  , data= training_table, family=binomial)
+summary(mod2)
+```
+```{r}
+pred_ <- predict(mod2,newdata = test_table[,!'coin'],se=TRUE)
+pred_ <- within(pred_, {
+  PredictedProb <- plogis(fit)
+  LL <- plogis(fit - (1.96 * se.fit))
+  UL <- plogis(fit + (1.96 * se.fit))
+})
+
+pred2_ <- as.data.table(pred_)
+
+
+pred3_ <- cbind(pred2_, pred_coin = factor(ifelse(pred2_$PredictedProb > 
+                                                       0.5, 1, 0)))
+
+confusion2 <- as.matrix(table(pred3_$pred_coin, test_table$coin))
+confusion2
+
+```
+```{r}
+cible <- c(test_table[,coin])
+test <- cbind(pred3_[,c('pred_coin')],cible)
+
+
+erreur <- c()
+erreur["mod"]=0
+erreur["atp"]=0
+
+for (i in 1:2259) {
+  if (test[i,1]!=test[i,2]) {erreur["mod"]=erreur["mod"]+1}
+  if ((test_table[i,coin]==0 & test_table[i,rank]<0) | (test_table[i,coin]==1 & test_table[i,rank]>0)) {erreur["atp"]=erreur["atp"]+1}
+  }
+head(erreur)
+```
+## Odds Ratio
+
+```{r}
+exp(cbind(OR = coef(mod2), confint(mod2)))
+
+```
+##Avec Glmnet
+
+```{r}
+#install.packages('glmnet')
+library(glmnet)
+Xtrain <- as.matrix(training_table[,-64])
+Ytrain <- as.matrix(training_table[,64])
+
+mod3 <- glmnet(Xtrain,Ytrain,family='binomial',standardize = TRUE,lambda=0,alpha=0)
+print(mod3)
+print(mod3$beta) #Affichage des coeeficients
+
+```
+```{r}
+#pr?diction
+Xtest <- as.matrix(test_table[,-1])
+pred4 <- predict(mod3,Xtest,type='class',s=c(0))
+print(table(pred4))
+```
+
+```{r}
+#taux d'erreur
+print(sum(test_table$coin != pred4)/nrow(test_table))
+ERR <- data.frame(glm = 0,ridge1=0,ridge2=0,lasso=0,elasticnet=0)
+ERR$glm <- sum(test_table$coin != pred4)/nrow(test_table)
+```
+**Le taux d'erreur est de 12,7%**
+
+##R?gression Ridge
+
+```{r}
+ridge <- glmnet(Xtrain,Ytrain,family  ='binomial',standardize = TRUE,alpha=0)
+plot(ridge,xvar='lambda')
+```
+##Identification de la valeur optimale de lambda
+Optimisation du param?tre lambda
+Par validation crois?e 
+
+```{r}
+set.seed(1234)
+cv_ridge <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure = 'class',nfolds=10,alpha=0,keep=TRUE)
+plot(cv_ridge)#Taux d'erreur en vc vs. log de lambda
+
+```
+Min de l'erreur en CV
+
+```{r}
+print(min(cv_ridge$cvm))
+```
+
+lambda correspondant ? cette erreur :
+```{r}
+print(cv_ridge$lambda.min)
+```
+
+Son logarithme :
+```{r}
+print(log(cv_ridge$lambda.min))
+```
+info : coordonn?e que l'on peut lire sur le graphique au-dessus(c'est le premier point)
+
+lambda le plus ?lev? (par rapport ? l'intervalle de confiance de l'erreur optimale)
+
+```{r}
+print(cv_ridge$lambda.1se)
+```
+
+
+Son log
+```{r}
+print(log(cv_ridge$lambda.1se))
+```
+
+##Pr?diction
+
+```{r}
+predridge <- predict(cv_ridge,Xtest,s=c(cv_ridge$lambda.min,cv_ridge$lambda.1se),type='class')
+print(sum(test_table$coin != predridge[,1])/nrow(test_table)) #taux d'erreur pour lambda min
+ERR$ridge1 <- sum(test_table$coin != predridge[,1])/nrow(test_table)
+```
+
+```{r}
+print(sum(test_table$coin != predridge[,2])/nrow(test_table)) #taux d'erreur pour lambda 1se
+ERR$ridge2 <- sum(test_table$coin != predridge[,2])/nrow(test_table)
+```
+
+##R?capitulatif ? ce stade l?
+
+```{r}
+print(ERR)
+```
+
+##Elastic net
+
+```{r}
+enet <- glmnet(Xtrain,Ytrain,family='binomial',standardize = TRUE, alpha=.8)
+plot(enet,xvar='lambda')
+```
+
+Affichage du nombre de variables selectionn?es vs lambda (alpha = 0.8)
+```{r}
+print(cbind(enet$lambda,enet$df))
+```
+
+```{r}
+print(enet$beta[abs(enet$beta[,25])>0,15])
+```
+
+##Optimisation de lambda (par validation crois?e)
+pour d?tecter la valeur optimale de lambda pour alpha = 0.8
+
+```{r}
+cv_enet <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure = 'class',nfolds=10,alpha=.8,foldid=cv_ridge$foldid)
+```
+
+Lambda min
+
+```{r}
+print(cv_enet$lambda.min)
+```
+
+Pr?diction
+```{r}
+predenet <- predict(cv_enet,Xtest,s=c(cv_enet$lambda.min),type='class')
+print(table(predenet))
+```
+
+
+Taux d'erreur
+```{r}
+print(sum(test_table$coin != predenet)/nrow(test_table))
+ERR$elasticnet <- sum(test_table$coin != predenet)/nrow(test_table)
+```
+
+Table des erreurs
+
+```{r}
+print(ERR)
+```
+
+Remarque : optimiser conjointement lambda et alpha? A voir ...
+
+
