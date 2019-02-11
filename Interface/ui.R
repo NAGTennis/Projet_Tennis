@@ -8,10 +8,15 @@
 #
 
 library(shiny)
+######Ne plas oublier d'importer les tables de données
+setkey(Rank,Player_Id)
+setkey(atp_players,Player_Id)
 Joueurs_actif <- unique(Rank[DateRanking>=20180101&Numero<=100,.(Player_Id)][atp_players,.(nom=paste(Prenom, Nom)),nomatch=0])
 Type_surfaces <- c("",unique(Tennis_table[tourney_date>'20170101',.(surface)]))
 Nom_tournois <- c("",unique(Tennis_table[tourney_date>'20170101',.(tourney_name)]))
+tags$head(tags$link(rel = "stylesheet",type = "text/css", href = "./style.css"))
 shinyUI(
+  
   # navbarPage
   navbarPage("Prédictions ATP",
              
@@ -52,20 +57,45 @@ shinyUI(
                         )
                         ,
                         mainPanel(
-                          splitLayout(
-                            imageOutput("nom1"),
-                            textOutput("match_resume"),
-                            imageOutput("nom2")
+                          fluidRow(
+                            splitLayout(
+                              textOutput("nom_j1")
+                              ,HTML("<div style='text-align:center; font-size: 18px'>Contre</div>")
+                              ,textOutput("nom_j2")
+                            )
+                            ,
+                            splitLayout(
+                              imageOutput("image_j1")
+                              ," "
+                              ,imageOutput("image_j2")
+                            )
                           )
                         )
+                        # mainPanel(
+                        #   splitLayout(
+                        #     fluidRow(
+                        #       textOutput("nom_j1")
+                        #       ,imageOutput("image_j1")
+                        #     ),
+                        #    HTML("<div style='text-align:center; font-size: 18px'>Contre</div>"),
+                        #    fluidRow(
+                        #       textOutput("nom_j2")
+                        #       ,imageOutput("image_j2")
+                        #       ,style="overflow:hidden;")
+                        #   )
+                        #   ,"test"
+                        # )
                       )
                       
              ),
-             # onglet sur la societe
+             
+             # onglet About
              tabPanel("About",
                       "Projet réalisé par Nardjesse, Greg et Axel."
              )
              
+             #CSS
+             ,tags$style(type = 'text/css', '#nom_j1, #nom_j2{color: #0099ff;font-size: 18px;text-align:center;overflow: hidden;}')
              
   )
 )

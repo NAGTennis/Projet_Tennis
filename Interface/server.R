@@ -32,7 +32,22 @@ shinyServer(function(input, output) {
       paste(noms,surface,lieu, " le " , input$date)
     })
   })
-  output$nom1 <- renderImage({
+  
+  output$nom_j1 <- renderText({
+    input$go
+    isolate({
+      input$nom1
+    })
+  })
+  
+  output$nom_j2 <- renderText({
+    input$go
+    isolate({
+      paste(input$nom2)
+    })
+  })
+  
+  output$image_j1 <- renderImage({
     input$go
     isolate({
       if (file.exists(paste("../img/",str_to_lower(input$nom1),".png",sep=""))) {
@@ -43,12 +58,14 @@ shinyServer(function(input, output) {
       }
       return(list(
         src = link,
-        alt=input$nom1
+        alt=input$nom1,
+        width='100%',
+        height='auto'
       ))
     })
   }, deleteFile = FALSE)
   
-  output$nom2 <- renderImage({
+  output$image_j2 <- renderImage({
     input$go
     isolate({
       if (file.exists(paste("../img/",str_to_lower(input$nom2),".png",sep=""))) {
@@ -59,7 +76,9 @@ shinyServer(function(input, output) {
       }
       return(list(
         src = link,
-        alt=input$nom2
+        alt=input$nom2,
+        width='100%',
+        height='auto'
       ))
     })
   }, deleteFile = FALSE)
