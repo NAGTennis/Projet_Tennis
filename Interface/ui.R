@@ -8,6 +8,9 @@
 #
 
 library(shiny)
+######Ne plas oublier d'importer les tables de données
+setkey(Rank,Player_Id)
+setkey(atp_players,Player_Id)
 Joueurs_actif <- unique(Rank[DateRanking>=20180101&Numero<=100,.(Player_Id)][atp_players,.(nom=paste(Prenom, Nom)),nomatch=0])
 Type_surfaces <- c("",unique(Tennis_table[tourney_date>'20170101',.(surface)]))
 Nom_tournois <- c("",unique(Tennis_table[tourney_date>'20170101',.(tourney_name)]))
