@@ -8,6 +8,7 @@
 #
 
 library(shiny)
+library(png)
 load("../Data/table_score.RData")
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
@@ -31,6 +32,36 @@ shinyServer(function(input, output) {
       paste(noms,surface,lieu, " le " , input$date)
     })
   })
+  output$nom1 <- renderImage({
+    input$go
+    isolate({
+      if (file.exists(paste("../img/",str_to_lower(input$nom1),".png",sep=""))) {
+        link=paste("../img/",str_to_lower(input$nom1),".png",sep="")
+      }
+      else {
+        link=paste("../img/ghost.png",sep="")
+      }
+      return(list(
+        src = link,
+        alt=input$nom1
+      ))
+    })
+  }, deleteFile = FALSE)
   
+  output$nom2 <- renderImage({
+    input$go
+    isolate({
+      if (file.exists(paste("../img/",str_to_lower(input$nom2),".png",sep=""))) {
+        link=paste("../img/",str_to_lower(input$nom2),".png",sep="")
+      }
+      else {
+        link=paste("../img/ghost.png",sep="")
+      }
+      return(list(
+        src = link,
+        alt=input$nom2
+      ))
+    })
+  }, deleteFile = FALSE)
   
 })

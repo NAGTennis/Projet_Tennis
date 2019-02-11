@@ -8,10 +8,9 @@
 #
 
 library(shiny)
-Joueurs_actif <- c("Roger Federer", "Lucas Pouille", "Rafael Nadal")
-Type_surfaces <- c("","Dur", "Gazon", "En salle", "Moquette", "Parquet", "Sunthetique", "Terre battue")
-Nom_tournois <- c("","Roland Garros", "Wimbledon", "Madrid")
-# Define UI for application that draws a histogram
+Joueurs_actif <- unique(Rank[DateRanking>=20180101&Numero<=100,.(Player_Id)][atp_players,.(nom=paste(Prenom, Nom)),nomatch=0])
+Type_surfaces <- c("",unique(Tennis_table[tourney_date>'20170101',.(surface)]))
+Nom_tournois <- c("",unique(Tennis_table[tourney_date>'20170101',.(tourney_name)]))
 shinyUI(
   # navbarPage
   navbarPage("Prédictions ATP",
@@ -23,7 +22,6 @@ shinyUI(
                         tabPanel("Table", 
                                  # titre avec css
                                  h1("Jeu de données", style = "color : #0099ff;text-align:center"),
-                                 
                                  # table
                                  dataTableOutput("table")),
                         tabPanel("Résumé",h1("Résumé des données", style = "color : #0099ff;text-align:center"),verbatimTextOutput("summary"))
@@ -54,7 +52,11 @@ shinyUI(
                         )
                         ,
                         mainPanel(
-                          textOutput("match_resume")
+                          splitLayout(
+                            imageOutput("nom1"),
+                            textOutput("match_resume"),
+                            imageOutput("nom2")
+                          )
                         )
                       )
                       
@@ -65,5 +67,5 @@ shinyUI(
              )
              
              
-             )
   )
+)
