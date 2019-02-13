@@ -311,3 +311,29 @@ download.file("https://www.atptour.com/-/media/tennis/players/head-shot/delpotro
 download.file("https://www.atptour.com/-/media/tennis/players/head-shot/2017/coric_headao17.png",'img/Borna Coric.png', mode = 'wb')
 download.file("https://www.atptour.com/-/media/tennis/players/head-shot/2018/estrella_burgos_head_ao18.png",'img/Victor Estrella.png', mode = 'wb')
 ```
+
+Récupération des images des tournois sur le site atp
+```{r}
+library(RCurl)
+Nom_tournois <- unique(Tennis_table[tourney_date>'20170101',.(tourney_name)])
+for (i in 1:75) {
+  if (!file.exists(paste("img/tournois/",Nom_tournois[i],".png",sep=""))) {
+    if (url.exists(paste("https://www.atptour.com/-/media/images/atp-tournaments/logos/",str_replace(str_to_lower(Nom_tournois[i])," ",""),"2019_logo.jpg",sep=""))) {
+      print(Nom_tournois[i])
+      download.file(paste("https://www.atptour.com/-/media/images/atp-tournaments/logos/",str_replace(str_to_lower(Nom_tournois[i])," ",""),"2019_logo.jpg",sep=""),paste("img/tournois/",Nom_tournois[i],".png",sep=""), mode = 'wb')
+    }
+    else if (url.exists(paste("https://www.atptour.com/-/media/images/atp-tournaments/logos/",str_replace(str_to_lower(Nom_tournois[i])," ",""),"_tournlogo.png",sep=""))) {
+      print(Nom_tournois[i])
+      download.file(paste("https://www.atptour.com/-/media/images/atp-tournaments/logos/",str_replace(str_to_lower(Nom_tournois[i])," ",""),"_tournlogo.png",sep=""),paste("img/tournois/",Nom_tournois[i],".png",sep=""), mode = 'wb')
+    }
+  }
+}
+
+#Joueurs non trouvés
+download.file("https://www.atptour.com/-/media/tennis/players/head-shot/ghost-headshot.png",'img/ghost.png', mode = 'wb')
+download.file("https://www.atptour.com/-/media/tennis/players/head-shot/2018/zvereva_head_ao18.png",'img/Alexander Zverev.png', mode = 'wb')
+download.file("https://www.atptour.com/-/media/tennis/players/head-shot/2017/nishikori_headao17.png",'img/Kei Nishikori.png', mode = 'wb')
+download.file("https://www.atptour.com/-/media/tennis/players/head-shot/delpotro_atpwt-headshot-template.png",'img/Juan Martin Del Potro.png', mode = 'wb')
+download.file("https://www.atptour.com/-/media/tennis/players/head-shot/2017/coric_headao17.png",'img/Borna Coric.png', mode = 'wb')
+download.file("https://www.atptour.com/-/media/tennis/players/head-shot/2018/estrella_burgos_head_ao18.png",'img/Victor Estrella.png', mode = 'wb')
+```

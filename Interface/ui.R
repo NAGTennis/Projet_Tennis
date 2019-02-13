@@ -60,7 +60,7 @@ shinyUI(
                           fluidRow(
                             splitLayout(
                               textOutput("nom_j1")
-                              ,HTML("<div style='text-align:center; font-size: 18px'>Contre</div>")
+                              ,HTML("<div style='text-align:center; font-size: 18px'>contre</div>")
                               ,textOutput("nom_j2")
                             )
                             ,
@@ -71,20 +71,6 @@ shinyUI(
                             )
                           )
                         )
-                        # mainPanel(
-                        #   splitLayout(
-                        #     fluidRow(
-                        #       textOutput("nom_j1")
-                        #       ,imageOutput("image_j1")
-                        #     ),
-                        #    HTML("<div style='text-align:center; font-size: 18px'>Contre</div>"),
-                        #    fluidRow(
-                        #       textOutput("nom_j2")
-                        #       ,imageOutput("image_j2")
-                        #       ,style="overflow:hidden;")
-                        #   )
-                        #   ,"test"
-                        # )
                       )
                       
              ),
