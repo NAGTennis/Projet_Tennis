@@ -50,11 +50,11 @@ shinyServer(function(input, output) {
   output$image_j1 <- renderImage({
     input$go
     isolate({
-      if (file.exists(paste("../img/",str_to_lower(input$nom1),".png",sep=""))) {
-        link=paste("../img/",str_to_lower(input$nom1),".png",sep="")
+      if (file.exists(paste("../img/joueurs/",input$nom1,".png",sep=""))) {
+        link=paste("../img/joueurs/",input$nom1,".png",sep="")
       }
       else {
-        link=paste("../img/ghost.png",sep="")
+        link=paste("../img/joueurs/ghost.png",sep="")
       }
       return(list(
         src = link,
@@ -68,15 +68,33 @@ shinyServer(function(input, output) {
   output$image_j2 <- renderImage({
     input$go
     isolate({
-      if (file.exists(paste("../img/",str_to_lower(input$nom2),".png",sep=""))) {
-        link=paste("../img/",str_to_lower(input$nom2),".png",sep="")
+      if (file.exists(paste("../img/joueurs/",input$nom2,".png",sep=""))) {
+        link=paste("../img/joueurs/",input$nom2,".png",sep="")
       }
       else {
-        link=paste("../img/ghost.png",sep="")
+        link=paste("../img/joueurs/ghost.png",sep="")
       }
       return(list(
         src = link,
         alt=input$nom2,
+        width='100%',
+        height='auto'
+      ))
+    })
+  }, deleteFile = FALSE)
+  
+  output$image_tournoi <- renderImage({
+    input$go
+    isolate({
+      if (file.exists(paste("../img/tournois/",input$tournois,".png",sep=""))) {
+        link=paste("../img/tournois/",input$tournois,".png",sep="")
+      }
+      else {
+        link=paste("../img/tournois/tournois.png",sep="")
+      }
+      return(list(
+        src = link,
+        alt=input$nom1,
         width='100%',
         height='auto'
       ))

@@ -66,7 +66,7 @@ shinyUI(
                             ,
                             splitLayout(
                               imageOutput("image_j1")
-                              ," "
+                              ,imageOutput("image_tournoi")
                               ,imageOutput("image_j2")
                             )
                           )
