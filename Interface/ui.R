@@ -12,8 +12,8 @@ library(shiny)
 setkey(Rank,Player_Id)
 setkey(atp_players,Player_Id)
 Joueurs_actif <- unique(Rank[DateRanking>=20180101&Numero<=100,.(Player_Id)][atp_players,.(nom=paste(Prenom, Nom)),nomatch=0])
-Type_surfaces <- c("",unique(Tennis_table[tourney_date>'20170101',.(surface)]))
-Nom_tournois <- c("",unique(Tennis_table[tourney_date>'20170101',.(tourney_name)]))
+Type_surfaces <- c(" ",unique(Tennis_table[tourney_date>'20170101',.(surface)]))
+Nom_tournois <- c(" ",unique(Tennis_table[tourney_date>'20170101',.(tourney_name)]))
 tags$head(tags$link(rel = "stylesheet",type = "text/css", href = "./style.css"))
 shinyUI(
   
@@ -47,8 +47,12 @@ shinyUI(
                                  selectizeInput(inputId = "nom2", label = "Nom du Joueur 2",choices = Joueurs_actif, options=list(create=FALSE)),
                                  # Type de Surface
                                  selectInput(inputId = "surface", label = "Surface",choices = Type_surfaces),
-                                 # Type de Surface
+                                 # Type de Tournois
                                  selectInput(inputId = "tournois", label = "Tournois",choices = Nom_tournois),
+                                 # Type de surface dynamique
+                                 #htmlOutput("surface_select"),
+                                 # Type de tournois dynamique
+                                 #htmlOutput("tournois_select"),
                                  #Date du match
                                  dateInput(inputId = "date", label = "Date du match", value = Sys.Date(), format= "dd/mm/yyyy",language="French"),
                                  # bouton
@@ -57,20 +61,20 @@ shinyUI(
                         )
                         ,
                         mainPanel(
-                          fluidRow(
+                          wellPanel(fluidRow(height='500px',
                             splitLayout(
                               textOutput("nom_j1")
                               ,HTML("<div style='text-align:center; font-size: 18px'>contre</div>")
                               ,textOutput("nom_j2")
                             )
                             ,
-                            splitLayout(
-                              imageOutput("image_j1")
-                              ,imageOutput("image_tournoi")
+                            splitLayout(align='middle'
+                              ,imageOutput("image_j1")
+                              ,imageOutput("image_surface_tournois")
                               ,imageOutput("image_j2")
                             )
                           )
-                        )
+                        ))
                       )
                       
              ),
@@ -81,7 +85,9 @@ shinyUI(
              )
              
              #CSS
-             ,tags$style(type = 'text/css', '#nom_j1, #nom_j2{color: #0099ff;font-size: 18px;text-align:center;overflow: hidden;}')
-             
+             ,tags$style(type = 'text/css', '#nom_j1, #nom_j2{color: #0099ff;font-size: 18px;text-align:center;overflow: hidden}')
+             ,tags$style(type = 'text/css', '.image_j1, .image_j2{height:auto}')
+             #,tags$style(type = 'text/css', '#image_surface_tournois {display: table-cell; vertical-align: middle; text-align:center; width: 33.333%; height: auto}')
+             ,tags$style(type = 'text/css', '.shiny-split-layout>div {vertical-align: middle;}')
   )
 )
