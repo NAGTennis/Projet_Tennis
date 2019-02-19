@@ -41,6 +41,7 @@ shinyUI(
                         column(width = 3, 
                                # wellPanel pour griser
                                wellPanel(
+                                 h3("Caractéristiques du match à prédire", style = "color : #0099ff"),
                                  # Nom du joueur 1
                                  selectizeInput(inputId = "nom1", label = "Nom du Joueur 1",choices = Joueurs_actif, options=list(create=FALSE)),
                                  # Nom du joueur 2
@@ -49,10 +50,6 @@ shinyUI(
                                  selectInput(inputId = "surface", label = "Surface",choices = Type_surfaces),
                                  # Type de Tournois
                                  selectInput(inputId = "tournois", label = "Tournois",choices = Nom_tournois),
-                                 # Type de surface dynamique
-                                 #htmlOutput("surface_select"),
-                                 # Type de tournois dynamique
-                                 #htmlOutput("tournois_select"),
                                  #Date du match
                                  dateInput(inputId = "date", label = "Date du match", value = Sys.Date(), format= "dd/mm/yyyy",language="French"),
                                  # bouton
@@ -60,21 +57,36 @@ shinyUI(
                                )
                         )
                         ,
-                        mainPanel(
-                          wellPanel(fluidRow(height='500px',
-                            splitLayout(
-                              textOutput("nom_j1")
-                              ,HTML("<div style='text-align:center; font-size: 18px'>contre</div>")
-                              ,textOutput("nom_j2")
-                            )
-                            ,
-                            splitLayout(align='middle'
-                              ,imageOutput("image_j1")
-                              ,imageOutput("image_surface_tournois")
-                              ,imageOutput("image_j2")
+                        column(width = 9,
+                          wellPanel(
+                            fluidRow(height='auto',
+                              splitLayout(
+                                textOutput("nom_j1")
+                                ,HTML("<div style='text-align:center; font-size: 18px'>contre</div>")
+                                ,textOutput("nom_j2")
+                              )
+                              ,
+                              splitLayout(align='middle'
+                                ,imageOutput("image_j1")
+                                ,imageOutput("image_surface_tournois")
+                                ,imageOutput("image_j2")
+                              )
+                              ,
+                              # bouton de prédiction
+                              splitLayout(align='middle'
+                                ,actionButton("predict", "Prédire",width='33.333%',style='font-size:133%')
+                              )
                             )
                           )
-                        ))
+                        )
+                      )
+                      ,
+                      column(width=12  
+                        ,wellPanel(
+                          h2("Résumé des informations du match",style = "color : #0099ff;text-align:center")
+                          ,dataTableOutput("donnees_datatable")
+                          ,verbatimTextOutput("proba")
+                        )
                       )
                       
              ),

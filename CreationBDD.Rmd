@@ -298,11 +298,11 @@ table_score[,c("hist_ace","hist_df","hist_1stIn","hist_1stWon","hist_2ndWon","hi
                ,"tourn_ace","tourn_df","tourn_1stIn","tourn_1stWon","tourn_2ndWon","tourn_bpSaved","tourn_bpMean","tourn_bpConverted","tourn_svptWon","tourn_returnPtWon","tourn_1stReturnWon","tourn_2ndReturnWon"
                ,"fatigue"
                ,"abandon_diff")
-            := c((f_historique(Tennis_table_work,i_name=p1_name,i_surface=surface,i_round=round_num,i_matchnum=match_num)-f_historique(Tennis_table_work,i_name=p2_name,i_surface=surface,i_round=round_num,i_matchnum=match_num))
-                ,(f_historique(Tennis_table_work,i_name=p1_name,i_surface=surface,i_round=round_num,i_matchnum=match_num,i_row=10)-f_historique(Tennis_table_work,i_name=p2_name,i_surface=surface,i_round=round_num,i_matchnum=match_num,i_row=10))
-                ,(f_historique(Tennis_table_work,i_name=p1_name,i_surface=surface,i_round=round_num,i_matchnum=match_num,i_opponent=p2_name)-f_historique(Tennis_table_work,i_name=p2_name,i_surface=surface,i_round=round_num,i_matchnum=match_num,i_opponent=p1_name))
-                ,(f_historique(Tennis_table_work,i_name=p1_name,i_tournament=tourney_name,i_round=round_num,i_matchnum=match_num)-f_historique(Tennis_table_work,i_name=p2_name,i_tournament=tourney_name,i_round=round_num,i_matchnum=match_num))
-                ,(f_fatigue(Tennis_table_work,i_name=p1_name,i_date=tourney_date,i_duree=NULL, i_nbmatchs=2, i_round=round, i_matchnum=match_num)[,NbJeuJoue]-f_fatigue(Tennis_table_work,i_name=p2_name,i_date=tourney_date,i_duree=NULL, i_nbmatchs=2, i_round=round, i_matchnum=match_num)[,NbJeuJoue])
+            := c((f_historique(Tennis_table_work,i_name=p1_name,i_surface=surface,i_date=tourney_date,i_round=round_num,i_matchnum=match_num)-f_historique(Tennis_table_work,i_name=p2_name,i_surface=surface,i_date=tourney_date,i_round=round_num,i_matchnum=match_num))
+                ,(f_historique(Tennis_table_work,i_name=p1_name,i_surface=surface,i_date=tourney_date,i_round=round_num,i_matchnum=match_num,i_row=10)-f_historique(Tennis_table_work,i_name=p2_name,i_surface=surface,i_date=tourney_date,i_round=round_num,i_matchnum=match_num,i_row=10))
+                ,(f_historique(Tennis_table_work,i_name=p1_name,i_surface=surface,i_date=tourney_date,i_round=round_num,i_matchnum=match_num,i_opponent=p2_name)-f_historique(Tennis_table_work,i_name=p2_name,i_surface=surface,i_date=tourney_date,i_round=round_num,i_matchnum=match_num,i_opponent=p1_name))
+                ,(f_historique(Tennis_table_work,i_name=p1_name,i_tournament=tourney_name,i_date=tourney_date,i_round=round_num,i_matchnum=match_num)-f_historique(Tennis_table_work,i_name=p2_name,i_tournament=tourney_name,i_date=tourney_date,i_round=round_num,i_matchnum=match_num))
+                ,(f_fatigue(Tennis_table_work,i_name=p1_name,i_date=tourney_date,i_duree=NULL,i_nbmatchs=2,i_round=round,i_matchnum=match_num)[,NbJeuJoue]-f_fatigue(Tennis_table_work,i_name=p2_name,i_date=tourney_date,i_duree=NULL, i_nbmatchs=2, i_round=round, i_matchnum=match_num)[,NbJeuJoue])
                 ,(f_retour_abandon(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_retour_abandon(Tennis_table_work,i_name=p2_name,i_date=tourney_date))
                 )
             ,by=c(nom_colonnes)]
@@ -310,7 +310,7 @@ table_score[,c("Head2Head"):=c(f_Headtohead(Tennis_table_work,i_name = p1_name,i
             ,by=c(nom_colonnes)]
 table_score[,c("TxVictSurface10"):=c(f_VicT(Tennis_table_work,i_name=p1_name,i_opponent=p2_name,i_date = tourney_date,i_round=round_num, i_row=10,i_matchnum=match_num,i_surface=surface))
             ,by=c(nom_colonnes)]
-table_score[,c('NbTitre'):=c(f_NombreTitre(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreTitre(Tennis_table_work,i_name=p2_name,i_date=tourney_date)),by=c(nom_colonnes)][,c('NbTitreSaison') := c(f_NombreTitreSaison(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreTitreSaison(Tennis_table_work,i_name=p2_name,i_date=tourney_date)),by=c(nom_colonnes)][,c('NbVictoire') := c(f_NombreVictoire(Tennis_table_work,i_name=p1_name,i_round=round_num,i_match_num=match_num,i_date=tourney_date)-f_NombreVictoire(Tennis_table_work,i_name=p2_name,i_round=round_num,i_match_num=match_num,i_date=tourney_date)),by=c(nom_colonnes)][,c('NbVictoireSaisonPrec'):=c(f_NombreVictoireSaisonPrecedente(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreVictoireSaisonPrecedente(Tennis_table_work,i_name=p2_name,i_date=tourney_date)),by=c(nom_colonnes)][,c('SurfacePred'):=c(f_surface(Tennis_table_work,i_name=p1_name,i_date=tourney_date,i_round=round_num,i_match_num=match_num,i_surface=surface)-f_surface(Tennis_table_work,i_name=p2_name,i_date=tourney_date,i_round=round_num,i_match_num=match_num,i_surface=surface)),by=c(nom_colonnes)]
+table_score[,c('NbTitre'):=c(f_NombreTitre(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreTitre(Tennis_table_work,i_name=p2_name,i_date=tourney_date)),by=c(nom_colonnes)][,c('NbTitreSaisonPrec') := c(f_NombreTitreSaison(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreTitreSaison(Tennis_table_work,i_name=p2_name,i_date=tourney_date)),by=c(nom_colonnes)][,c('NbVictoire') := c(f_NombreVictoire(Tennis_table_work,i_name=p1_name,i_round=round_num,i_match_num=match_num,i_date=tourney_date)-f_NombreVictoire(Tennis_table_work,i_name=p2_name,i_round=round_num,i_match_num=match_num,i_date=tourney_date)),by=c(nom_colonnes)][,c('NbVictoireSaisonPrec'):=c(f_NombreVictoireSaisonPrecedente(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreVictoireSaisonPrecedente(Tennis_table_work,i_name=p2_name,i_date=tourney_date)),by=c(nom_colonnes)][,c('SurfacePred'):=c(f_surface(Tennis_table_work,i_name=p1_name,i_date=tourney_date,i_round=round_num,i_match_num=match_num,i_surface=surface)-f_surface(Tennis_table_work,i_name=p2_name,i_date=tourney_date,i_round=round_num,i_match_num=match_num,i_surface=surface)),by=c(nom_colonnes)]
 
 end_time <- Sys.time()
 time=end_time - start_time
@@ -318,18 +318,11 @@ time=end_time - start_time
 ##############
 ### CORRECTION
 ##############
-nom_colonnes=colnames(table_score)
-load("Data/table_score_final.RData")
-table_score[,c("NbTitre","NbTitreSaison","NbVictoire","NbVictoireSaisonPrec","SurfacePred") := NULL]
-start_time <- Sys.time()
-table_score[,c('NbTitre'):=c(f_NombreTitre(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreTitre(Tennis_table_work,i_name=p2_name,i_date=tourney_date)),by=c(nom_colonnes)][,c('NbTitreSaisonPrec') := c(f_NombreTitreSaison(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreTitreSaison(Tennis_table_work,i_name=p2_name,i_date=tourney_date)),by=c(nom_colonnes)][,c('NbVictoire') := c(f_NombreVictoire(Tennis_table_work,i_name=p1_name,i_round=round_num,i_match_num=match_num,i_date=tourney_date)-f_NombreVictoire(Tennis_table_work,i_name=p2_name,i_round=round_num,i_match_num=match_num,i_date=tourney_date)),by=c(nom_colonnes)][,c('NbVictoireSaisonPrec'):=c(f_NombreVictoireSaisonPrecedente(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreVictoireSaisonPrecedente(Tennis_table_work,i_name=p2_name,i_date=tourney_date)),by=c(nom_colonnes)][,c('SurfacePred'):=c(f_surface(Tennis_table_work,i_name=p1_name,i_date=tourney_date,i_round=round_num,i_match_num=match_num,i_surface=surface)-f_surface(Tennis_table_work,i_name=p2_name,i_date=tourney_date,i_round=round_num,i_match_num=match_num,i_surface=surface)),by=c(nom_colonnes)]
-end_time <- Sys.time()
-time=end_time - start_time
-
 f_replaceNA(table_score)
-
 save(table_score,file="Data/table_score.RData")
-load("Data/table_score.RData")
+
+load("Data/table_score_old.RData")
+
 training_table=table_score[year(tourney_date)<2018]
 test_table=table_score[year(tourney_date)==2018]
 training_table[,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
