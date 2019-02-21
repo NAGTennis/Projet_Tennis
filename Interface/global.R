@@ -245,3 +245,6 @@ Tennis_table_work[is.nan(w_bpSaved),':='(w_bpSaved=1)]
 Tennis_table_work[is.nan(l_bpSaved),':='(l_bpSaved=1)]
 Tennis_table_work=f_NombreDeJeu(Tennis_table_work,"score")
 
+###############################
+#### Models
+load(file="../Models/RF500.RData")

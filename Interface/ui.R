@@ -82,11 +82,19 @@ shinyUI(
                       )
                       ,
                       column(width=12  
+                        # ,wellPanel(
+                        #   h2("Résumé des informations du match",style = "color : #0099ff;text-align:center")
+                        #   ,dataTableOutput("donnees_datatable")
+                        #   ,verbatimTextOutput("proba")
+                        # )
                         ,wellPanel(
-                          h2("Résumé des informations du match",style = "color : #0099ff;text-align:center")
-                          ,dataTableOutput("donnees_datatable")
-                          ,verbatimTextOutput("proba")
-                        )
+                            h1("Résultat du Match",style = "color : #0099ff;text-align:center")
+                            ,splitLayout(
+                              h3("Vainqueur :",style = "color : #0099ff")
+                              ,imageOutput("winner")
+                              ,textOutput("proba")
+                            )
+                          )
                       )
                       
              ),

@@ -218,17 +218,14 @@ shinyServer(function(input, output, session) {
     })
   })
   
-  output$proba <- renderPrint({
-    input$predict
-    isolate({
-      req(input$predict)
+  proba <- eventReactive(input$predict, {
       p1_name=input$nom1
       p1_id=ifelse(length(Tennis_table_work[w_name==p1_name]$w_id)>0,Tennis_table_work[w_name==p1_name]$w_id[1],Tennis_table_work[l_name==p1_name]$l_id[1])
       p2_name=input$nom2
       p2_id=ifelse(length(Tennis_table_work[w_name==p2_name]$w_id)>0,Tennis_table_work[w_name==p2_name]$w_id[1],Tennis_table_work[l_name==p2_name]$l_id[1])
       tourney_date=input$date
-      tourney_name=input$tournois
-      surface=input$surface
+      tourney_name=ifelse(input$tournois!=" ",input$tournois,0)
+      surface=ifelse(input$surface!=" ",input$surface,0)
       age=as.numeric(difftime(anydate(tourney_date),anydate(atp_players[Player_Id==p1_id]$DateNaissance)))/365.25-as.numeric(difftime(anydate(tourney_date),anydate(atp_players[Player_Id==p2_id]$DateNaissance)))/365.25
       hand=ifelse(atp_players[Player_Id==p1_id]$Main_Forte=='R',1,0)-ifelse(atp_players[Player_Id==p2_id]$Main_Forte=='R',1,0)
       ht=ifelse(length(Tennis_table_work[w_name==p1_name]$w_ht)>0,Tennis_table_work[w_name==p1_name,.(ht=w_ht)][order(-ht)]$ht[1],Tennis_table_work[l_name==p1_name,.(ht=l_ht)][order(-ht)]$ht[1]) - ifelse(length(Tennis_table_work[w_name==p2_name]$w_ht)>0,Tennis_table_work[w_name==p2_name,.(ht=w_ht)][order(-ht)]$ht[1],Tennis_table_work[l_name==p2_name,.(ht=l_ht)][order(-ht)]$ht[1])
@@ -276,10 +273,29 @@ shinyServer(function(input, output, session) {
       
       
       rf_pred=predict(rf,table_score,type='prob')
-      #FORCER LES VALEUR ABSENTE à NULL
+      
       return(rf_pred[,2])
     })
+  
+  output$proba <- renderText({
+    ifelse(proba()>1,proba(),1-proba())
   })
   
-  
+  output$winner <- renderImage({
+    input$predict
+    isolate({
+      if (proba()>=0.5) {
+        link=paste("../img/joueurs/",input$nom1,".png",sep="")
+      }
+      else {
+        link=paste("../img/joueurs/",input$nom2,".png",sep="")
+      }
+      return(list(
+        src = link,
+        alt=input$nom2,
+        width='100%',
+        height='auto'
+      ))
+    })
+  }, deleteFile = FALSE)
 })
