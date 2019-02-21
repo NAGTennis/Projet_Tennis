@@ -170,8 +170,8 @@ shinyServer(function(input, output, session) {
       p2_name=input$nom2
       p2_id=ifelse(length(Tennis_table_work[w_name==p2_name]$w_id)>0,Tennis_table_work[w_name==p2_name]$w_id[1],Tennis_table_work[l_name==p2_name]$l_id[1])
       tourney_date=input$date
-      tourney_name=input$tournois
-      surface=input$surface
+      tourney_name=ifelse(input$tournois!=" ",input$tournois,0)
+      surface=ifelse(input$surface!=" ",input$surface,0)
       age=as.numeric(difftime(anydate(tourney_date),anydate(atp_players[Player_Id==p1_id]$DateNaissance)))/365.25-as.numeric(difftime(anydate(tourney_date),anydate(atp_players[Player_Id==p2_id]$DateNaissance)))/365.25
       hand=ifelse(atp_players[Player_Id==p1_id]$Main_Forte=='R',1,0)-ifelse(atp_players[Player_Id==p2_id]$Main_Forte=='R',1,0)
       ht=ifelse(length(Tennis_table_work[w_name==p1_name]$w_ht)>0,Tennis_table_work[w_name==p1_name,.(ht=w_ht)][order(-ht)]$ht[1],Tennis_table_work[l_name==p1_name,.(ht=l_ht)][order(-ht)]$ht[1]) - ifelse(length(Tennis_table_work[w_name==p2_name]$w_ht)>0,Tennis_table_work[w_name==p2_name,.(ht=w_ht)][order(-ht)]$ht[1],Tennis_table_work[l_name==p2_name,.(ht=l_ht)][order(-ht)]$ht[1])

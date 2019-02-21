@@ -321,7 +321,7 @@ time=end_time - start_time
 f_replaceNA(table_score)
 save(table_score,file="Data/table_score.RData")
 
-load("Data/table_score_old.RData")
+load("Data/table_score.RData")
 
 training_table=table_score[year(tourney_date)<2018]
 test_table=table_score[year(tourney_date)==2018]

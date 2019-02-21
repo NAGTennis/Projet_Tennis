@@ -41,7 +41,7 @@ f_historique <- function(Tennis_table_work,i_name,i_date=NULL,i_surface=NULL,i_t
   #AJOUTER match_num<match_num ou round<i_round pour les tourney_date=i_date
   #OU i_date==tourney_date&round_num>i_round F=1 SF=2 QF=3 etc OU i_round=='RR' i_matchnum<match_num
   if ((!is.null(i_date))&(!is.null(i_duree))) {historique=historique[difftime(anydate(i_date),tourney_date)<=i_duree]}
-  if (!is.null(i_surface)) {historique=historique[surface==i_surface]}
+  if (!is.null(i_surface)) if (i_surface!=0) {historique=historique[surface==i_surface]}
   if (!is.null(i_tournament)) {historique=historique[tourney_name==i_tournament]}
   if (!is.null(i_opponent)) {historique=historique[opponent==i_opponent]}
   if (!is.null(i_row)) {historique=historique[,head(.SD,i_row)]}
