@@ -16,6 +16,7 @@ library(knitr)
 library(dplyr)
 #install.packages('dtplyr')
 library(dtplyr)
+library(randomForest)
 ###############################
 #### Fonctions
 f_replaceNA = function(DT) {

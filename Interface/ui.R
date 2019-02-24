@@ -90,13 +90,20 @@ shinyUI(
                         ,wellPanel(
                             h1("Résultat du Match",style = "color : #0099ff;text-align:center")
                             ,splitLayout(
-                              h3("Vainqueur :",style = "color : #0099ff")
-                              ,imageOutput("winner")
-                              ,textOutput("proba")
+                              verticalLayout(
+                                splitLayout(
+                                  h3("Vainqueur :",style = "color : #0099ff")
+                                  ,h3(textOutput("winner_name"))
+                                )
+                                ,splitLayout(
+                                  h3("Probabilité :",style = "color : #0099ff")
+                                  ,h3(textOutput("proba"))
+                                )
+                              )
+                              ,imageOutput("winner_img")
                             )
-                          )
+                        )
                       )
-                      
              ),
              
              # onglet About
