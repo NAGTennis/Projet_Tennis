@@ -41,7 +41,7 @@ table(columns_type_df)
 table_score<-as.data.table(table_score)
 table_score<-cbind(table_score,Annee)
 table(table_score$Annee)
-
+table(table_score$coin)
 ```
 Paramètres de la boucle AnneeDeb est la première année sur laquelle 
 on veut faire de la prédiction de l AnneeDeb à l AnneeFin, en regardant 4
@@ -53,7 +53,7 @@ Preparation des paramètres ante-modèlisation (RES est à modifier selon les mo
 ```{r}
 AnneeDeb<-2010
 AnneeFin<-2018
-passee<-3
+passee<-6
 RES<- data.frame(Y=table_score$coin,Annee=table_score$Annee,XGboots=0,
                  SVM=0,Reseau=0,XGboots2=0,SVM2=0,Reseau2=0)
 
@@ -93,9 +93,9 @@ for(i in AnneeDeb:AnneeFin){
 ```
 
 Modélisation propres au XGBosst
-1) eta optimal en premier lieu 0.5 (0.1 0.05 0.2)
+1) eta optimal en premier lieu 1 (0.1 0.05 0.2)
 2)max.depth optimal 25
-3) eta optimal en second lieu 0.5
+3) eta optimal en second lieu 1.2
 ```{r}
 modeles<-vector("list",AnneeFin-AnneeDeb)
 modeles1<-modeles
@@ -110,32 +110,32 @@ func<- function(x){
 }
 
 for(i in AnneeDeb:AnneeFin){
-  train<-table_score[Annee<i & Annee>i-(passee+1)][,Annee:=NULL]
+  train<-table_score[Annee<i & Annee>i-(passee+1)] [,":="(Annee=NULL,match_num=NULL, round_num=NULL, p1_id=NULL, p2_id=NULL)]
   target<-train$coin
   train$coin<-NULL
-  test<-table_score[Annee==i][,Annee:=NULL]
+  test<-table_score[Annee==i][,":="(Annee=NULL,match_num=NULL, round_num=NULL, p1_id=NULL, p2_id=NULL)]
   res_test<-test$coin
   
-  xgboost_mod<- xgboost(data=data.matrix(train),label = target, max.depth=25, eta=0.5, nrounds=15,objective="binary:logistic")
+  xgboost_mod<- xgboost(data=data.matrix(train),label = target, max.depth=25, eta=0.025, nthread=2,nrounds=50,objective="binary:logistic")
   modeles[[i-AnneeDeb+1]]<-xgboost_mod
   y_pred<-predict(xgboost_mod,data.matrix(test))
   y_pred2<-lapply(y_pred,FUN = func)
   Resultats[i-AnneeDeb+1]<-sum(as.numeric(y_pred2==res_test))/length(y_pred2)
   
-   xgboost_mod1<- xgboost(data=data.matrix(train),label = target, max.depth=25, eta=0.75, nthread=2, nrounds=15,objective="binary:logistic")
+   xgboost_mod1<- xgboost(data=data.matrix(train),label = target, max.depth=25, eta=0.05, nthread=2, nrounds=40,objective="binary:logistic")
   modeles1[[i-AnneeDeb+1]]<-xgboost_mod
   y_pred<-predict(xgboost_mod1,data.matrix(test))
   y_pred2<-lapply(y_pred,FUN = func)
   Resultats1[i-AnneeDeb+1]<-sum(as.numeric(y_pred2==res_test))/length(y_pred2)
 
-   xgboost_mod2<- xgboost(data=data.matrix(train),label = target, max.depth=25, eta=1, nthread=2,nrounds=15,objective="binary:logistic")
+   xgboost_mod2<- xgboost(data=data.matrix(train),label = target, max.depth=25, eta=0.1, nthread=2,nrounds=32,objective="binary:logistic")
   modeles2[[i-AnneeDeb+1]]<-xgboost_mod
   y_pred<-predict(xgboost_mod2,data.matrix(test))
   y_pred2<-lapply(y_pred,FUN = func)
   Resultats2[i-AnneeDeb+1]<-sum(as.numeric(y_pred2==res_test))/length(y_pred2)
   
   
-   xgboost_mod3<- xgboost(data=data.matrix(train),label = target, max.depth=25, eta=1.25, nthread=2,nrounds=15,objective="binary:logistic")
+   xgboost_mod3<- xgboost(data=data.matrix(train),label = target, max.depth=25, eta=0.2, nthread=2,nrounds=25,objective="binary:logistic")
   modeles3[[i-AnneeDeb+1]]<-xgboost_mod
   y_pred<-predict(xgboost_mod3,data.matrix(test))
   y_pred2<-lapply(y_pred,FUN = func)
@@ -163,13 +163,13 @@ func<- function(x){
 }
 AN=2018
 for(i in 1:15){
-  train<-table_score[Annee<AN & Annee>AN-(i+1)][,Annee:=NULL]
+  train<-table_score[Annee<AN & Annee>AN-(i+1)]#[,":="(Annee=NULL,match_num=NULL, round_num=NULL, p1_id=NULL, p2_id=NULL)]
   target<-train$coin
   train$coin<-NULL
-  test<-table_score[Annee==AN][,Annee:=NULL]
+  test<-table_score[Annee==AN]#[,":="(Annee=NULL,match_num=NULL,  round_num=NULL, p1_id=NULL, p2_id=NULL)]
   res_test<-test$coin
   
-  xgboost_mod<- xgboost(data=data.matrix(train),label = target, max.depth=25, eta=0.5, nrounds=15,objective="binary:logistic")
+  xgboost_mod<- xgboost(data=data.matrix(train),label = target, max.depth=25, eta=0.1, nrounds=32,objective="binary:logistic")
   modeles[[i]]<-xgboost_mod
   y_pred<-predict(xgboost_mod,data.matrix(test))
   y_pred2<-lapply(y_pred,FUN = func)
@@ -182,7 +182,7 @@ summary(Resultats)
 which.max(Resultats)
 #ETUDE DU MODELE OPTIMAL 
 model<-xgb.dump(modeles[[which.max(Resultats)]],with_stats = T)
-model[1:10]
+#model[1:10]
 names<-dimnames(data.matrix(train))[[2]]
 importance<-xgb.importance(names,modeles[[which.max(Resultats)]])
 importance
@@ -201,3 +201,24 @@ check<-cbind(check,y_pred3)
 prop.table(table(check$y_pred3==check$coin))
 ```
 
+R?seau de neuronnes
+```{r}
+install.packages('neuralnet')
+library(neuralnet)
+AN=2018
+modeles<-vector("list",7)
+Resultats<-c(rep(0,7))
+for(i in 3:10){
+  train<-table_score[Annee<AN & Annee>AN-(i+1)][,":="(Annee=NULL,match_num=NULL, round_num=NULL, p1_id=NULL, p2_id=NULL)]
+nn=neuralnet(coin~.,data=train, hidden=10,act.fct = "logistic",
+                linear.output = FALSE)
+modeles[i]<-nn
+test<-table_score[Annee==AN][,":="(Annee=NULL,match_num=NULL,  round_num=NULL, p1_id=NULL, p2_id=NULL)]
+  }
+res_test<-test$coin
+  test$coin<-NULL
+  sapply(test,as.numeric)
+  table(sapply(test,class))
+Predict=compute(nn,(test))
+Predict$net.result
+```
