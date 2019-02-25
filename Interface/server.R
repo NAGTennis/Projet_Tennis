@@ -304,7 +304,7 @@ shinyServer(function(input, output, session) {
       }
       return(list(
         src = link,
-        alt=input$nom2,
+        alt="winner",
         width='100%',
         height='auto'
       ))
@@ -323,6 +323,22 @@ shinyServer(function(input, output, session) {
       return(
         link
       )
+    })
+  })
+  
+  output$model_proba <- renderText({
+    input$models
+    isolate({
+      req(input$models)
+      paste("Taux d'erreur :",input$models)
+    })
+  })
+  
+  output$plot <- renderPlot({
+    input$models
+    isolate({
+      req(input$models)
+      plot(rnorm(1000))
     })
   })
 })

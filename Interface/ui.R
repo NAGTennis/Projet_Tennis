@@ -14,26 +14,39 @@ setkey(atp_players,Player_Id)
 Joueurs_actif <- unique(Rank[DateRanking>=20180101&Numero<=100,.(Player_Id)][atp_players,.(nom=paste(Prenom, Nom)),nomatch=0])
 Type_surfaces <- c(" ",unique(Tennis_table[tourney_date>'20170101',.(surface)]))
 Nom_tournois <- c(" ",unique(Tennis_table[tourney_date>'20170101',.(tourney_name)]))
-tags$head(tags$link(rel = "stylesheet",type = "text/css", href = "./style.css"))
+models <- c("","Régression logistique", "Ridge", "Lasso", "Elasticnet", "XGBoost", "Random Forest")
+
+rmdfiles <- c("../test.Rmd")
+sapply(rmdfiles, knit, quiet = T)
 shinyUI(
   
   # navbarPage
   navbarPage("Prédictions ATP",
              
-             # premier onglet Data
-             tabPanel("Données", 
-                      navlistPanel(
-                        widths = c(2, 10), 
-                        tabPanel("Table", 
-                                 # titre avec css
-                                 h1("Jeu de données", style = "color : #0099ff;text-align:center"),
-                                 # table
-                                 dataTableOutput("table")),
-                        tabPanel("Résumé",h1("Résumé des données", style = "color : #0099ff;text-align:center"),verbatimTextOutput("summary"))
-                      )
+             # Onglet Présentation
+             tabPanel("Présentation", 
+                  withMathJax(includeMarkdown("test.md"))
              ), 
              
-             # second onglet Visualisation
+             # Onlget Modélisation
+             tabPanel("Modélisation", 
+                  fluidRow(
+                    # premier colonne
+                    column(width = 4, 
+                           # wellPanel pour griser
+                           wellPanel(
+                             h3("Modélisations", style = "color : #0099ff"),
+                             # Modèles
+                             selectInput(inputId = "models", label = "Modèles",choices = models)
+                             ,textOutput("model_proba")
+                           )
+                    )
+                    ,column(width = 6 , plotOutput("plot"))
+                    
+                  )
+             ), 
+             
+             # Onglet Application
              tabPanel("Application", 
                       
                       fluidRow(
@@ -56,25 +69,26 @@ shinyUI(
                                  actionButton("go", "Valider")
                                )
                         )
-                        ,
-                        column(width = 9,
-                          wellPanel(
-                            fluidRow(height='auto',
-                              splitLayout(
-                                textOutput("nom_j1")
-                                ,HTML("<div style='text-align:center; font-size: 18px'>contre</div>")
-                                ,textOutput("nom_j2")
-                              )
-                              ,
-                              splitLayout(align='middle'
-                                ,imageOutput("image_j1")
-                                ,imageOutput("image_surface_tournois")
-                                ,imageOutput("image_j2")
-                              )
-                              ,
-                              # bouton de prédiction
-                              splitLayout(align='middle'
-                                ,actionButton("predict", "Prédire",width='33.333%',style='font-size:133%')
+                        ,conditionalPanel(condition ="input.go != ''"
+                          ,column(width = 9,
+                            wellPanel(
+                              fluidRow(height='auto',
+                                splitLayout(
+                                  textOutput("nom_j1")
+                                  ,HTML("<div style='text-align:center; font-size: 20px'>contre</div>")
+                                  ,textOutput("nom_j2")
+                                )
+                                ,
+                                splitLayout(align='middle'
+                                  ,imageOutput("image_j1")
+                                  ,imageOutput("image_surface_tournois")
+                                  ,imageOutput("image_j2")
+                                )
+                                ,
+                                # bouton de prédiction
+                                splitLayout(align='middle'
+                                  ,actionButton("predict", "Prédire",width='33.333%',style='font-size:133%')
+                                )
                               )
                             )
                           )
@@ -87,21 +101,23 @@ shinyUI(
                         #   ,dataTableOutput("donnees_datatable")
                         #   ,verbatimTextOutput("proba")
                         # )
-                        ,wellPanel(
-                            h1("Résultat du Match",style = "color : #0099ff;text-align:center")
-                            ,splitLayout(
-                              verticalLayout(
-                                splitLayout(
-                                  h3("Vainqueur :",style = "color : #0099ff")
-                                  ,h3(textOutput("winner_name"))
+                        ,conditionalPanel(condition ="input.predict != ''"
+                          ,wellPanel(
+                              h1("Résultat du Match",style = "color : #0099ff;text-align:center")
+                              ,splitLayout(align='middle'
+                                ,verticalLayout(
+                                  splitLayout(
+                                    h3("Vainqueur :",style = "color : #0099ff")
+                                    ,h3(textOutput("winner_name"))
+                                  )
+                                  ,splitLayout(
+                                    h3("Probabilité :",style = "color : #0099ff")
+                                    ,h3(textOutput("proba"))
+                                  )
                                 )
-                                ,splitLayout(
-                                  h3("Probabilité :",style = "color : #0099ff")
-                                  ,h3(textOutput("proba"))
-                                )
+                                ,imageOutput("winner_img")
                               )
-                              ,imageOutput("winner_img")
-                            )
+                          )
                         )
                       )
              ),
@@ -112,9 +128,11 @@ shinyUI(
              )
              
              #CSS
-             ,tags$style(type = 'text/css', '#nom_j1, #nom_j2{color: #0099ff;font-size: 18px;text-align:center;overflow: hidden}')
-             ,tags$style(type = 'text/css', '.image_j1, .image_j2{height:auto}')
-             #,tags$style(type = 'text/css', '#image_surface_tournois {display: table-cell; vertical-align: middle; text-align:center; width: 33.333%; height: auto}')
+             ,tags$style(type = 'text/css', '#nom_j1, #nom_j2{color: #0099ff;font-size: 20px;text-align:center;overflow: hidden}')
+             ,tags$style(type = 'text/css', '#image_j1, #image_j2 {max-width: 300px}')
+             ,tags$style(type = 'text/css', '#winner_img{max-width: 400px}')
              ,tags$style(type = 'text/css', '.shiny-split-layout>div {vertical-align: middle;}')
-  )
+             ,tags$style(type = 'text/css', '#image_surface_tournois{max-width: 200px}')
+             
+             )
 )
