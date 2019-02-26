@@ -87,7 +87,7 @@ Basé sur le code de j'ai oublié son nom, le paramètrage du modèle et les mod
  Xtrain <- as.matrix(training_table[,c("Annee","coin","cible"):=NULL])
   Xtest<-as.matrix(test_table[,c("Annee","coin","cible"):=NULL])
   mod1 <- glmnet(Xtrain,Ytrain, family='binomial',standardize = TRUE,lambda=0, alpha=0) # <------------ Reg log
-pred1 <- predict(mod1,Xtest, type='class', s=c(0)) # <--------- Pred Reg log
+pred1 <- predict(mod1,Xtest, type='response', s=c(0)) # <--------- Pred Reg log
 RES["RegLog"] <- pred1
 #sum(test_table$coin == pred1)/nrow(test_table)
 
@@ -101,7 +101,7 @@ cv_mod2 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds
 # min(cv_mod2$cvm) #Erreur minimale
 # cv_mod2$lambda.min # Lambda correspondant
 # cv_mod2$lambda.1se
-pred2 <- predict(cv_mod2,Xtest,s=c(cv_mod2$lambda.min,cv_mod2$lambda.1se),type='class')
+pred2 <- predict(cv_mod2,Xtest,s=c(cv_mod2$lambda.min,cv_mod2$lambda.1se),type='response')
 RES["Ridge1"] <- pred2[,1]
 RES["Ridge2"]  <- pred2[,2]
 
@@ -110,12 +110,12 @@ RES["Ridge2"]  <- pred2[,2]
 #3) Elasticnet
 mod3 <- glmnet(Xtrain,Ytrain,family='binomial', alpha=0.5)
 cv_mod3 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=0.5,foldid=cv_mod2$foldid) 
-RES["Ridge2"] <- predict(cv_mod3,Xtest,type='class',s=c(cv_mod3$lambda.min)) #<------ Pourquoi Eric r?cup?re le lambda.min de la ridge (dans son exemple ? lui)?
+RES["ElNet"] <- predict(cv_mod3,Xtest,type='response',s=c(cv_mod3$lambda.min)) #<------ Pourquoi Eric r?cup?re le lambda.min de la ridge (dans son exemple ? lui)?
 
 #4)Lasso
 mod4 <- glmnet(Xtrain,Ytrain,family='binomial',alpha=1)
 cv_mod4 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=1,keep=TRUE)
-RES["ElNet"]  <- predict(cv_mod4,Xtest,type='class',s=c(cv_mod4$lambda.min))
+RES["Lasso"]  <- predict(cv_mod4,Xtest,type='response',s=c(cv_mod4$lambda.min))
  xgboost_mod<- xgboost(data=Xtrain,label = Ytrain, max.depth=25, eta=0.1, nrounds=32,objective="binary:logistic")
   RES["XGBoost"] <-predict(xgboost_mod,Xtest)
   Err<-function(x){
@@ -127,12 +127,23 @@ err_Elnst<-Err("ElNet")
 err_Ridge2<-Err("Ridge2")
 err_Ridge1<-Err("Ridge1")
 err_Reglog<-Err("RegLog")
-save(mod1,file = "Reglog.RData")
-save(cv_mod2,file = "Ridge.RData")
-save(cv_mod4,file = "Lasso.RData")
-save(cv_mod3,file = "ElNet.RData")
-save(xgboost_mod,file = "XGB.RData")
+save(mod1,file = "Models/Reglog.RData")
+save(cv_mod2,file = "Models/Ridge.RData")
+save(cv_mod4,file = "Models/Lasso.RData")
+save(cv_mod3,file = "Models/ElNet.RData")
+save(xgboost_mod,file = "Models/XGB.RData")
 
+########ROCRMODELS
+##################
+ROCR_pred=c(rf=ROCR::prediction(rf_pred[,2],cible)
+            ,XGBoost=ROCR::prediction(RES["XGBoost"],RES["Y"])
+            ,ElNet=ROCR::prediction(RES["ElNet"],RES["Y"])
+            ,Ridge1=ROCR::prediction(RES["Ridge1"],RES["Y"])
+            ,Ridge2=ROCR::prediction(RES["Ridge2"],RES["Y"])
+            ,Lasso=ROCR::prediction(RES["Lasso"],RES["Y"])
+            ,RegLog=ROCR::prediction(RES["RegLog"],RES["Y"])
+            )
+save(ROCR_pred,file = "Models/ROCR_pred.RData")
 ```
 
 Modélisation propres au XGBosst
