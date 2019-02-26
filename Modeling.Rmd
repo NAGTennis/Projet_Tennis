@@ -16,8 +16,10 @@ When you click the **Knit** button a document will be generated that includes bo
 Library pour modélisation
 ```{r}
 library(xgboost)
-install.packages("plotROC")
 library(plotROC)
+library(glmnet)
+library(randomForest)
+library(data.table)
 ```
 
 Création d'une variable année pour faire notre cross validation
@@ -27,21 +29,28 @@ load("Data/table_score.RData")
 table_score_sauv<-table_score
 #Création de l'annee
 Annee<-substr(as.character(table_score$tourney_date),1,4)
-#Séparation des variables quali et des variables quanti
-columns_type <- sapply(table_score, class)
-table(columns_type)
-table_score_df<-as.data.frame(table_score)
-table_score<-table_score_df[,columns_type != "character"]
-table_score_char<-table_score_df[,columns_type == "character"]
-table_score_char<-cbind(table_score_char,table_score$tourney_date,Annee)
-head(table_score_char)
-table_score$tourney_date<-NULL
-columns_type_df <- sapply(table_score, class)
-table(columns_type_df)
-table_score<-as.data.table(table_score)
+#Dernier retraitement 
+
 table_score<-cbind(table_score,Annee)
-table(table_score$Annee)
-table(table_score$coin)
+table_score<-na.omit(table_score)
+f_replaceNA = function(DT) {
+  
+  for (j in seq_len(ncol(DT)))
+    
+    set(DT,which(is.na(DT[[j]])),j,0)
+  
+}
+
+f_replaceNA(table_score)
+table_score[,cible:=as.factor(coin)]
+training_table <- table_score[Annee<2018,]
+test_table <- table_score[Annee==2018,]
+
+training_table[,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
+test_table[,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
+table(sapply(training_table,class))
+table(sapply(test_table,class))
+
 ```
 Paramètres de la boucle AnneeDeb est la première année sur laquelle 
 on veut faire de la prédiction de l AnneeDeb à l AnneeFin, en regardant 4
@@ -51,11 +60,14 @@ Le paramètre RES est à regler en fonction des modèles appliqués
 
 Preparation des paramètres ante-modèlisation (RES est à modifier selon les modèles utilisés)
 ```{r}
-AnneeDeb<-2010
+AnneeDeb<-1995
 AnneeFin<-2018
 passee<-6
-RES<- data.frame(Y=table_score$coin,Annee=table_score$Annee,XGboots=0,
-                 SVM=0,Reseau=0,XGboots2=0,SVM2=0,Reseau2=0)
+RES<- data.frame(Y=test_table$coin,RegLog=0,Ridge1=0,Ridge2=0,ElNet=0,
+                 SVM=0,Reseau=0,XGBoost=0,SVM2=0,Reseau2=0)
+err<-
+set.seed(1234)
+
 
 ```
 
@@ -69,27 +81,58 @@ model_glmnet <- train(churn_y ~ ., data = train,
 )
 Basé sur le code de j'ai oublié son nom, le paramètrage du modèle et les modèles sont à changer. Je suis parti sur une table de matrice comme pour l'exemple avec les reg log sous contraintes, à changer aussi selon besoin
 ```{r}
-library(glmnet)
-library(randomForest)
-for(i in AnneeDeb:AnneeFin){
-  i=2010
-  XXA <- as.matrix(table_score[Annee<i & Annee>i-(passee+1)]
-                   [,Annee:=NULL][,coin:=NULL]
- )
-  YYA <- as.matrix(table_score[Annee<i & Annee>i-(passee+1),c("coin")])
-  mod <- glmnet(XXA,YYA,lambda=0,family="binomial",alpha=0)
-  RES[Annee==i,"XGboots"]<-predict(mod,                          newx=as.matrix(table_score[Annee==i,][,Annee:=NULL][,coin:=NULL]))
-  mod <- glmnet(XXA,YYA,lambda=2,alpha=0)
-  RES[Annee==i,"SVM"] <- predict(mod,newx=as.matrix(table_score[Annee==i,][,Annee:=NULL][,coin:=NULL]))
-  mod <- glmnet(XXA,YYA,lambda=10,alpha=0)
-  RES[Annee==i,"Reseau"] <- predict(mod,newx=as.matrix(table_score[Annee==i,][,Annee:=NULL][,coin:=NULL]))
-  mod <- xgboost(data = )
-  RES[Annee==i,"XGboots2"] <- predict(mod,newx=as.matrix(table_score[Annee==i,][,Annee:=NULL][,coin:=NULL]))
-  mod <- randomForest(XXA,YYA)
-  RES[Annee==i,"SVM2"] <- predict(mod,as.matrix(table_score[Annee==i,][,Annee:=NULL][,coin:=NULL]))
-  mod <- randomForest(XXA,YYA,ntree=100)
-  RES[Annee==i,"Reseau2"] <- predict(mod,as.matrix(table_score[Annee==i,][,Annee:=NULL][,coin:=NULL]))
-}
+
+
+ Ytrain <- as.matrix(training_table[,c("cible")])
+ Xtrain <- as.matrix(training_table[,c("Annee","coin","cible"):=NULL])
+  Xtest<-as.matrix(test_table[,c("Annee","coin","cible"):=NULL])
+  mod1 <- glmnet(Xtrain,Ytrain, family='binomial',standardize = TRUE,lambda=0, alpha=0) # <------------ Reg log
+pred1 <- predict(mod1,Xtest, type='class', s=c(0)) # <--------- Pred Reg log
+RES["RegLog"] <- pred1
+#sum(test_table$coin == pred1)/nrow(test_table)
+
+
+#2) Ridge
+mod2 <- glmnet(Xtrain,Ytrain,family='binomial',alpha=0)
+
+cv_mod2 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=0,keep=TRUE)
+# plot(cv_mod2)
+# names(cv_mod2)
+# min(cv_mod2$cvm) #Erreur minimale
+# cv_mod2$lambda.min # Lambda correspondant
+# cv_mod2$lambda.1se
+pred2 <- predict(cv_mod2,Xtest,s=c(cv_mod2$lambda.min,cv_mod2$lambda.1se),type='class')
+RES["Ridge1"] <- pred2[,1]
+RES["Ridge2"]  <- pred2[,2]
+
+
+
+#3) Elasticnet
+mod3 <- glmnet(Xtrain,Ytrain,family='binomial', alpha=0.5)
+cv_mod3 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=0.5,foldid=cv_mod2$foldid) 
+RES["Ridge2"] <- predict(cv_mod3,Xtest,type='class',s=c(cv_mod3$lambda.min)) #<------ Pourquoi Eric r?cup?re le lambda.min de la ridge (dans son exemple ? lui)?
+
+#4)Lasso
+mod4 <- glmnet(Xtrain,Ytrain,family='binomial',alpha=1)
+cv_mod4 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=1,keep=TRUE)
+RES["ElNet"]  <- predict(cv_mod4,Xtest,type='class',s=c(cv_mod4$lambda.min))
+ xgboost_mod<- xgboost(data=Xtrain,label = Ytrain, max.depth=25, eta=0.1, nrounds=32,objective="binary:logistic")
+  RES["XGBoost"] <-predict(xgboost_mod,Xtest)
+  Err<-function(x){
+   err<- 1-sum(RES[x]==RES["Y"])/nrow(RES)
+   return(err)
+  }
+err_Xgb<-Err("XGBoost")
+err_Elnst<-Err("ElNet")
+err_Ridge2<-Err("Ridge2")
+err_Ridge1<-Err("Ridge1")
+err_Reglog<-Err("RegLog")
+save(mod1,file = "Reglog.RData")
+save(cv_mod2,file = "Ridge.RData")
+save(cv_mod4,file = "Lasso.RData")
+save(cv_mod3,file = "ElNet.RData")
+save(xgboost_mod,file = "XGB.RData")
+
 ```
 
 Modélisation propres au XGBosst
