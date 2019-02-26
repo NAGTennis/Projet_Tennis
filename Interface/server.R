@@ -278,24 +278,67 @@ shinyServer(function(input, output, session) {
     })
   
   output$proba <- renderText({
-    ifelse(proba()>1,proba(),1-proba())
+    ifelse(proba()>=0.5,proba(),1-proba())
   })
   
-  output$winner <- renderImage({
+  
+  
+  output$winner_img <- renderImage({
     input$predict
     isolate({
       if (proba()>=0.5) {
-        link=paste("../img/joueurs/",input$nom1,".png",sep="")
+        if (file.exists(paste("../img/joueurs/",input$nom1,".png",sep=""))) {
+          link=paste("../img/joueurs/",input$nom1,".png",sep="")
+        }
+        else {
+          link=paste("../img/joueurs/ghost.png",sep="")
+        }
       }
       else {
-        link=paste("../img/joueurs/",input$nom2,".png",sep="")
+        if (file.exists(paste("../img/joueurs/",input$nom2,".png",sep=""))) {
+          link=paste("../img/joueurs/",input$nom2,".png",sep="")
+        }
+        else {
+          link=paste("../img/joueurs/ghost.png",sep="")
+        }
       }
       return(list(
         src = link,
-        alt=input$nom2,
+        alt="winner",
         width='100%',
         height='auto'
       ))
     })
   }, deleteFile = FALSE)
+  
+  output$winner_name <- renderText({
+    input$predict
+    isolate({
+      if (proba()>=0.5) {
+        link=input$nom1
+      }
+      else {
+        link=input$nom2
+      }
+      return(
+        link
+      )
+    })
+  })
+  
+  output$model_proba <- renderText({
+    input$models
+    isolate({
+      req(input$models)
+      paste("Taux d'erreur :",input$models)
+    })
+  })
+  
+  output$plot <- renderPlot({
+    input$models
+    isolate({
+      req(input$models)
+      plot(rnorm(1000))
+    })
+  })
 })
