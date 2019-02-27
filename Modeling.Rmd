@@ -48,8 +48,6 @@ test_table <- table_score[Annee==2018,]
 
 training_table[,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
 test_table[,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
-table(sapply(training_table,class))
-table(sapply(test_table,class))
 
 ```
 Paramètres de la boucle AnneeDeb est la première année sur laquelle 
@@ -65,7 +63,6 @@ AnneeFin<-2018
 passee<-6
 RES<- data.frame(Y=test_table$coin,RegLog=0,Ridge1=0,Ridge2=0,ElNet=0,
                  SVM=0,Reseau=0,XGBoost=0,SVM2=0,Reseau2=0)
-err<-
 set.seed(1234)
 
 
@@ -79,62 +76,6 @@ model_glmnet <- train(churn_y ~ ., data = train,
   method = "glmnet",
   trControl = myControl
 )
-Basé sur le code de j'ai oublié son nom, le paramètrage du modèle et les modèles sont à changer. Je suis parti sur une table de matrice comme pour l'exemple avec les reg log sous contraintes, à changer aussi selon besoin
-```{r}
-
-
- Ytrain <- as.matrix(training_table[,c("cible")])
- Xtrain <- as.matrix(training_table[,c("Annee","coin","cible"):=NULL])
-  Xtest<-as.matrix(test_table[,c("Annee","coin","cible"):=NULL])
-  mod1 <- glmnet(Xtrain,Ytrain, family='binomial',standardize = TRUE,lambda=0, alpha=0) # <------------ Reg log
-pred1 <- predict(mod1,Xtest, type='class', s=c(0)) # <--------- Pred Reg log
-RES["RegLog"] <- pred1
-#sum(test_table$coin == pred1)/nrow(test_table)
-
-
-#2) Ridge
-mod2 <- glmnet(Xtrain,Ytrain,family='binomial',alpha=0)
-
-cv_mod2 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=0,keep=TRUE)
-# plot(cv_mod2)
-# names(cv_mod2)
-# min(cv_mod2$cvm) #Erreur minimale
-# cv_mod2$lambda.min # Lambda correspondant
-# cv_mod2$lambda.1se
-pred2 <- predict(cv_mod2,Xtest,s=c(cv_mod2$lambda.min,cv_mod2$lambda.1se),type='class')
-RES["Ridge1"] <- pred2[,1]
-RES["Ridge2"]  <- pred2[,2]
-
-
-
-#3) Elasticnet
-mod3 <- glmnet(Xtrain,Ytrain,family='binomial', alpha=0.5)
-cv_mod3 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=0.5,foldid=cv_mod2$foldid) 
-RES["Ridge2"] <- predict(cv_mod3,Xtest,type='class',s=c(cv_mod3$lambda.min)) #<------ Pourquoi Eric r?cup?re le lambda.min de la ridge (dans son exemple ? lui)?
-
-#4)Lasso
-mod4 <- glmnet(Xtrain,Ytrain,family='binomial',alpha=1)
-cv_mod4 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=1,keep=TRUE)
-RES["ElNet"]  <- predict(cv_mod4,Xtest,type='class',s=c(cv_mod4$lambda.min))
- xgboost_mod<- xgboost(data=Xtrain,label = Ytrain, max.depth=25, eta=0.1, nrounds=32,objective="binary:logistic")
-  RES["XGBoost"] <-predict(xgboost_mod,Xtest)
-  Err<-function(x){
-   err<- 1-sum(RES[x]==RES["Y"])/nrow(RES)
-   return(err)
-  }
-err_Xgb<-Err("XGBoost")
-err_Elnst<-Err("ElNet")
-err_Ridge2<-Err("Ridge2")
-err_Ridge1<-Err("Ridge1")
-err_Reglog<-Err("RegLog")
-save(mod1,file = "Reglog.RData")
-save(cv_mod2,file = "Ridge.RData")
-save(cv_mod4,file = "Lasso.RData")
-save(cv_mod3,file = "ElNet.RData")
-save(xgboost_mod,file = "XGB.RData")
-
-```
-
 Modélisation propres au XGBosst
 1) eta optimal en premier lieu 1 (0.1 0.05 0.2)
 2)max.depth optimal 25
@@ -153,36 +94,35 @@ func<- function(x){
 }
 
 for(i in AnneeDeb:AnneeFin){
-  train<-table_score[Annee<i & Annee>i-(passee+1)] [,":="(Annee=NULL,match_num=NULL, round_num=NULL, p1_id=NULL, p2_id=NULL)]
-  target<-train$coin
-  train$coin<-NULL
-  test<-table_score[Annee==i][,":="(Annee=NULL,match_num=NULL, round_num=NULL, p1_id=NULL, p2_id=NULL)]
-  res_test<-test$coin
-  
-  xgboost_mod<- xgboost(data=data.matrix(train),label = target, max.depth=25, eta=0.025, nthread=2,nrounds=50,objective="binary:logistic")
+  # train<-table_score[Annee<i & Annee>i-(passee+1)] [,":="(Annee=NULL,match_num=NULL, round_num=NULL, p1_id=NULL, p2_id=NULL)]
+  # target<-train$coin
+  # train$coin<-NULL
+  # test<-table_score[Annee==i][,":="(Annee=NULL,match_num=NULL, round_num=NULL, p1_id=NULL, p2_id=NULL)]
+  # res_test<-test$coin
+  xgboost_mod<- xgboost(data=Xtrain,label = Ytrain, max.depth=25, eta=0.025, nthread=2,nrounds=15,objective="binary:logistic")
   modeles[[i-AnneeDeb+1]]<-xgboost_mod
-  y_pred<-predict(xgboost_mod,data.matrix(test))
+  y_pred<-predict(xgboost_mod,Xtest)
   y_pred2<-lapply(y_pred,FUN = func)
-  Resultats[i-AnneeDeb+1]<-sum(as.numeric(y_pred2==res_test))/length(y_pred2)
+  Resultats[i-AnneeDeb+1]<-sum(as.numeric(y_pred2==Ytest))/length(y_pred2)
   
-   xgboost_mod1<- xgboost(data=data.matrix(train),label = target, max.depth=25, eta=0.05, nthread=2, nrounds=40,objective="binary:logistic")
+   xgboost_mod1<- xgboost(data=Xtrain,label = Ytrain, max.depth=25, eta=0.05, nthread=2, nrounds=40,objective="binary:logistic")
   modeles1[[i-AnneeDeb+1]]<-xgboost_mod
-  y_pred<-predict(xgboost_mod1,data.matrix(test))
+  y_pred<-predict(xgboost_mod1,Xtest)
   y_pred2<-lapply(y_pred,FUN = func)
-  Resultats1[i-AnneeDeb+1]<-sum(as.numeric(y_pred2==res_test))/length(y_pred2)
+  Resultats1[i-AnneeDeb+1]<-sum(as.numeric(y_pred2==Ytest))/length(y_pred2)
 
-   xgboost_mod2<- xgboost(data=data.matrix(train),label = target, max.depth=25, eta=0.1, nthread=2,nrounds=32,objective="binary:logistic")
+   xgboost_mod2<- xgboost(data=Xtrain,label = Ytrain, max.depth=25, eta=0.1, nthread=2,nrounds=32,objective="binary:logistic")
   modeles2[[i-AnneeDeb+1]]<-xgboost_mod
-  y_pred<-predict(xgboost_mod2,data.matrix(test))
+  y_pred<-predict(xgboost_mod2,Xtest)
   y_pred2<-lapply(y_pred,FUN = func)
-  Resultats2[i-AnneeDeb+1]<-sum(as.numeric(y_pred2==res_test))/length(y_pred2)
+  Resultats2[i-AnneeDeb+1]<-sum(as.numeric(y_pred2==Ytest))/length(y_pred2)
   
   
-   xgboost_mod3<- xgboost(data=data.matrix(train),label = target, max.depth=25, eta=0.2, nthread=2,nrounds=25,objective="binary:logistic")
+   xgboost_mod3<- xgboost(data=Xtrain,label = Ytrain, max.depth=25, eta=0.2, nthread=2,nrounds=25,objective="binary:logistic")
   modeles3[[i-AnneeDeb+1]]<-xgboost_mod
-  y_pred<-predict(xgboost_mod3,data.matrix(test))
+  y_pred<-predict(xgboost_mod3,Xtest)
   y_pred2<-lapply(y_pred,FUN = func)
-  Resultats3[i-AnneeDeb+1]<-sum(as.numeric(y_pred2==res_test))/length(y_pred2)
+  Resultats3[i-AnneeDeb+1]<-sum(as.numeric(y_pred2==Ytest))/length(y_pred2)
 
 }
 summary(Resultats)
@@ -195,73 +135,81 @@ summary(Resultats3)
 #resau de neuronnes 
 
 ```
-Etudes sur le nombres d'année optimal àprendre en compte pour modeliser :
-4 5 6 
-12 11 14
+Modélisation boucle for
+
 ```{r}
-modeles<-vector("list",15)
-Resultats<-c(rep(0,15))
+
+load("Data/table_score.RData")
+table_score<-na.omit(table_score)
+f_replaceNA = function(DT) {
+  
+  for (j in seq_len(ncol(DT)))
+    
+    set(DT,which(is.na(DT[[j]])),j,0)
+  
+}
 func<- function(x){
   ifelse(x<0.50,0,1)
 }
-AN=2018
-for(i in 1:15){
-  train<-table_score[Annee<AN & Annee>AN-(i+1)]#[,":="(Annee=NULL,match_num=NULL, round_num=NULL, p1_id=NULL, p2_id=NULL)]
-  target<-train$coin
-  train$coin<-NULL
-  test<-table_score[Annee==AN]#[,":="(Annee=NULL,match_num=NULL,  round_num=NULL, p1_id=NULL, p2_id=NULL)]
-  res_test<-test$coin
-  
-  xgboost_mod<- xgboost(data=data.matrix(train),label = target, max.depth=25, eta=0.1, nrounds=32,objective="binary:logistic")
-  modeles[[i]]<-xgboost_mod
-  y_pred<-predict(xgboost_mod,data.matrix(test))
-  y_pred2<-lapply(y_pred,FUN = func)
-  y_pred3<-unlist(y_pred2)
-  Resultats[i]<-sum(as.numeric(y_pred3==res_test))/length(y_pred2)
-  
+
+f_replaceNA(table_score)
+table_score[,cible:=as.factor(coin)]
+
+ech<-sample(1:nrow(table_score))
+cbind(table_score,ech)
+bloc<-4
+nbr_ligne<-1000
+table_score_new <- table_score[ech<nbr_ligne,][,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
+indb <- sample(1:nrow(table_score_new)%%bloc+1)
+
+RES<-data.frame(Y=table_score_new$cible,RegLog=0,Ridge=0,ElNet=0,                  Lasso=0, SVM=0,Reseau=0,XGBoost=0,SVM2=0,Reseau2=0)
+for (i in 1:bloc){
+  table_score_new <- table_score[ech<nbr_ligne,][,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
+Ytrain <- as.matrix(table_score_new[,c("cible")])[indb!=i,]
+Xtrain <- as.matrix(table_score_new[,c("coin","cible"):=NULL])[indb!=i,]
+Xtest<-as.matrix(table_score_new[indb==i,])
+  mod1 <- glmnet(Xtrain,Ytrain, family='binomial',standardize = TRUE,lambda=0, alpha=0) # <------------ Reg log
+ RES[indb==i,"RegLog"]<- predict(mod1,Xtest, type='class', s=c(0)) 
+#sum(test_table$coin == pred1)/nrow(test_table)
+
+#2) Ridge
+mod2 <- glmnet(Xtrain,Ytrain,family='binomial',alpha=0)
+
+cv_mod2 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=0,keep=TRUE)
+
+pred2 <- predict(cv_mod2,Xtest,s=c(cv_mod2$lambda.min,cv_mod2$lambda.1se),type='class')
+RES[indb==i,"Ridge"]  <- pred2[,2]
+
+
+
+#3) Elasticnet
+mod3 <- glmnet(Xtrain,Ytrain,family='binomial', alpha=0.5)
+cv_mod3 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=0.5,foldid=cv_mod2$foldid) 
+RES[indb==i,"ElNet"] <- predict(cv_mod3,Xtest,type='class',s=c(cv_mod3$lambda.min))
+
+#4)Lasso
+mod4 <- glmnet(Xtrain,Ytrain,family='binomial',alpha=1)
+cv_mod4 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=1,keep=TRUE)
+RES[indb==i,"Lasso"]  <- predict(cv_mod4,Xtest,type='class',s=c(cv_mod4$lambda.min))
+
+ xgboost_mod<- xgboost(data=Xtrain,label = Ytrain, max.depth=25, eta=0.1, nrounds=32,objective="binary:logistic")
+  y_pred<-predict(xgboost_mod,Xtest)
+  RES[indb==i,"XGBoost"] <-lapply(y_pred,FUN = func)
 
 }
-summary(Resultats)
-which.max(Resultats)
-#ETUDE DU MODELE OPTIMAL 
-model<-xgb.dump(modeles[[which.max(Resultats)]],with_stats = T)
-#model[1:10]
-names<-dimnames(data.matrix(train))[[2]]
-importance<-xgb.importance(names,modeles[[which.max(Resultats)]])
-importance
-xgb.plot.importance(importance[,])
-
-model<-xgb.dump(modeles[[which.min(Resultats)]],with_stats = T)
-model[1:10]
-names<-dimnames(data.matrix(train))[[2]]
-importance<-xgb.importance(names,modeles[[which.max(Resultats)]])
-importance
-xgb.plot.importance(importance[,])
-
-#Etude des predictions
-check<-table_score[Annee==2018]
-check<-cbind(check,y_pred3)
-prop.table(table(check$y_pred3==check$coin))
-```
-
-R?seau de neuronnes
-```{r}
-install.packages('neuralnet')
-library(neuralnet)
-AN=2018
-modeles<-vector("list",7)
-Resultats<-c(rep(0,7))
-for(i in 3:10){
-  train<-table_score[Annee<AN & Annee>AN-(i+1)][,":="(Annee=NULL,match_num=NULL, round_num=NULL, p1_id=NULL, p2_id=NULL)]
-nn=neuralnet(coin~.,data=train, hidden=10,act.fct = "logistic",
-                linear.output = FALSE)
-modeles[i]<-nn
-test<-table_score[Annee==AN][,":="(Annee=NULL,match_num=NULL,  round_num=NULL, p1_id=NULL, p2_id=NULL)]
+  Err<-function(x){
+   err<- 1-sum(RES[x]==RES["Y"])/nrow(RES)
+   return(err)
   }
-res_test<-test$coin
-  test$coin<-NULL
-  sapply(test,as.numeric)
-  table(sapply(test,class))
-Predict=compute(nn,(test))
-Predict$net.result
+err_Xgb<-Err("XGBoost")
+err_Elnet<-Err("ElNet")
+err_Lasso<-Err("Lasso")
+err_Ridge<-Err("Ridge")
+err_Reglog<-Err("RegLog")
+err_Xgb
+err_Elnet
+err_Lasso
+err_Ridge
+err_Reglog
 ```
+
