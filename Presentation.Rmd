@@ -20,27 +20,26 @@ Le but est d'avoir une base de donnée avec une ligne représentant un match : 1
 ### Quelques statistiques:
 
 ```{r}
-#mean(Tennis_hist$winner_age, na.rm=T)
-#mean(Tennis_hist$loser_age, na.rm=T)
+mean(Tennis_hist$winner_age, na.rm=T)
+mean(Tennis_hist$loser_age, na.rm=T)
 ```
 
 
 
-```{r Fréquence par terrain}
-library(ggplot2)
-#value <- prop.table(table(Tennis_hist$surface))*100
-#value
+```{r Frequence par terrain}
+value <- prop.table(table(Tennis_hist$surface))*100
+value
 
-#ggplot(Tennis_hist, aes(x=factor(1), fill=surface))+geom_bar(width = 1)+coord_polar("y")
+ggplot(Tennis_hist, aes(x=factor(1), fill=surface))+geom_bar(width = 1)+coord_polar("y")
 
 ```
-```{r Fréquence par pays}
-#freq_pays <- data.frame(table(Tennis_hist$winner_ioc))
-#new <- data.table(freq_pays[with(freq_pays,order(-Freq)),])
-#new <- new[1:10,]
-#p<-ggplot(data=new, aes(x=Var1,y=Freq))+geom_bar(stat="identity",fill="steelblue")+geom#_text(aes(label=Freq),vjust=-0.3,size=3.5)+theme_minimal()
-#p
-#p + coord_flip()
+```{r Frequence par pays}
+freq_pays <- data.frame(table(Tennis_hist$winner_ioc))
+new <- data.table(freq_pays[with(freq_pays,order(-Freq)),])
+new <- new[1:10,]
+p<-ggplot(data=new, aes(x=Var1,y=Freq))+geom_bar(stat="identity",fill="steelblue")+geom_text(aes(label=Freq),vjust=-0.3,size=3.5)+theme_minimal()
+p
+# p + coord_flip()
 ```
 Nombre de matches gagnés par nationalité (TOP 10) ... 
 
@@ -62,10 +61,10 @@ Quelques illustration de la base finale :
 Mettre un visuel sur la fatigue(camembert), nombre de victoires par âge
 
 ```{r}
-#plot(table_score$age~table_score$NbTitre)
-#ggplot(table_score, aes(x=NbTitre, y=age)) + geom_point() 
-#ggplot(table_score, aes(x=NbTitre, y=age)) + geom_point() + geom_smooth(method=lm)
-#ggplot(table_score, aes(x=NbTitre, y=age)) + geom_point() + geom_smooth()
+plot(table_score$age~table_score$NbTitre)
+ggplot(table_score, aes(x=NbTitre, y=age)) + geom_point()
+ggplot(table_score, aes(x=NbTitre, y=age)) + geom_point() + geom_smooth(method=lm)
+ggplot(table_score, aes(x=NbTitre, y=age)) + geom_point() + geom_smooth()
 ```
 Plus la différence d'âge est importante, plus le nombre de victoire est important?
 

@@ -16,7 +16,7 @@ Type_surfaces <- c(" ",unique(Tennis_table[tourney_date>'20170101',.(surface)]))
 Nom_tournois <- c(" ",unique(Tennis_table[tourney_date>'20170101',.(tourney_name)]))
 models <- c("","Régression logistique", "Ridge", "Lasso", "Elasticnet", "XGBoost", "Random Forest")
 
-rmdfiles <- c("../test.Rmd")
+rmdfiles <- c("../Presentation.Rmd")
 sapply(rmdfiles, knit, quiet = T)
 shinyUI(
   
@@ -25,7 +25,7 @@ shinyUI(
              
              # Onglet Présentation
              tabPanel("Présentation", 
-                  withMathJax(includeMarkdown("test.md"))
+                  withMathJax(includeMarkdown("Presentation.md"))
              ), 
              
              # Onlget Modélisation
