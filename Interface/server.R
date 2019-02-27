@@ -38,7 +38,7 @@ shinyServer(function(input, output, session) {
   })
   
   output$image_j1 <- renderImage({
-    input$go
+    input$go|input$predict
     isolate({
       if (file.exists(paste("../img/joueurs/",input$nom1,".png",sep=""))) {
         link=paste("../img/joueurs/",input$nom1,".png",sep="")
@@ -56,7 +56,7 @@ shinyServer(function(input, output, session) {
   }, deleteFile = FALSE)
   
   output$image_j2 <- renderImage({
-    input$go
+    input$go|input$predict
     isolate({
       if (file.exists(paste("../img/joueurs/",input$nom2,".png",sep=""))) {
         link=paste("../img/joueurs/",input$nom2,".png",sep="")
@@ -110,7 +110,7 @@ shinyServer(function(input, output, session) {
   }, deleteFile = FALSE)
   
   output$image_surface_tournois <- renderImage({
-    input$go
+    input$go|input$predict
     isolate({
       if (input$tournois!=" ") {
         if (file.exists(paste("../img/tournois/",input$tournois,".png",sep=""))) {
@@ -330,7 +330,32 @@ shinyServer(function(input, output, session) {
     input$models
     isolate({
       req(input$models)
-      paste("Taux d'erreur :",input$models)
+      if (input$models=="Régression logistique") {
+        # err <- performance(ROCR_pred["RegLog"]$RegLog, measure = "err") 
+        auc <- performance(ROCR_pred["RegLog"]$RegLog, measure = "auc")@y.values[[1]]
+      }
+      else if (input$models=="Ridge") { 
+        # err <- performance(ROCR_pred["Ridge1"]$Ridge1, measure = "err") 
+        auc <- performance(ROCR_pred["Ridge1"]$Ridge1, measure = "auc")@y.values[[1]]
+      }
+      else if (input$models=="Lasso") {
+        # err <- performance(ROCR_pred["Lasso"]$Lasso, measure = "err") 
+        auc <- performance(ROCR_pred["Lasso"]$Lasso, measure = "auc")@y.values[[1]]
+      }
+      else if (input$models=="Elasticnet") { 
+        # err <- performance(ROCR_pred["ElNet"]$ElNet, measure = "err") 
+        auc <- performance(ROCR_pred["ElNet"]$ElNet, measure = "auc")@y.values[[1]]
+      }
+      else if (input$models=="XGBoost") { 
+        # err <- performance(ROCR_pred["XGBoost"]$XGBoost, measure = "err") 
+        auc <- performance(ROCR_pred["XGBoost"]$XGBoost, measure = "auc")@y.values[[1]]
+      }
+      else if (input$models=="Random Forest") {
+        # err <- performance(ROCR_pred["rf"]$rf, measure = "err") 
+        auc <- performance(ROCR_pred["rf"]$rf, measure = "auc")@y.values[[1]]
+      }
+      # paste("Taux d'erreur :",err)
+      paste("AUC :",auc)
     })
   })
   
@@ -338,7 +363,30 @@ shinyServer(function(input, output, session) {
     input$models
     isolate({
       req(input$models)
-      plot(rnorm(1000))
+      if (input$models=="Régression logistique") {
+        perf <- performance(ROCR_pred["RegLog"]$RegLog, measure = "tpr", x.measure = "fpr") 
+        plot(perf, col=rainbow(10))
+      }
+      else if (input$models=="Ridge") {
+        perf <- performance(ROCR_pred["Ridge1"]$Ridge1, measure = "tpr", x.measure = "fpr") 
+        plot(perf, col=rainbow(10))
+      }
+      else if (input$models=="Lasso") {
+        perf <- performance(ROCR_pred["Lasso"]$Lasso, measure = "tpr", x.measure = "fpr") 
+        plot(perf, col=rainbow(10))
+      }
+      else if (input$models=="Elasticnet") {
+        perf <- performance(ROCR_pred["ElNet"]$ElNet, measure = "tpr", x.measure = "fpr") 
+        plot(perf, col=rainbow(10))
+      }
+      else if (input$models=="XGBoost") {
+        perf <- performance(ROCR_pred["XGBoost"]$XGBoost, measure = "tpr", x.measure = "fpr") 
+        plot(perf, col=rainbow(10))
+      }
+      else if (input$models=="Random Forest") {
+        perf <- performance(ROCR_pred["rf"]$rf, measure = "tpr", x.measure = "fpr") 
+        plot(perf, col=rainbow(10))
+      }
     })
   })
 })

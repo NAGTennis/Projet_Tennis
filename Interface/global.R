@@ -17,6 +17,7 @@ library(dplyr)
 #install.packages('dtplyr')
 library(dtplyr)
 library(randomForest)
+library(ggplot2)
 ###############################
 #### Fonctions
 f_replaceNA = function(DT) {
@@ -249,3 +250,4 @@ Tennis_table_work=f_NombreDeJeu(Tennis_table_work,"score")
 ###############################
 #### Models
 load(file="../Models/RF500.RData")
+load(file="../Models/ROCR_pred.RData")
