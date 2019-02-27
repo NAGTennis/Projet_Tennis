@@ -1,0 +1,85 @@
+---
+title: "Présentation du projet"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Objectif
+
+L'objectif de ce projet est de déterminer le vainqueur d'un match de tennis et de préciser avec quelle probabilité il gagnerait. 
+
+# Données à disposition
+
+Nous disposons au départ de 3 bases de données : une sur les caractéristiques des joueurs (Atp_player), une propre aux données de rang des joueurs (ATP_ranking), et enfin une sur les caractéristiques d'un match (ATP_matches).
+
+Le but est d'avoir une base de donnée avec une ligne représentant un match : 169 000 lignes et 49 variables.
+
+### Quelques statistiques:
+
+```{r}
+#mean(Tennis_hist$winner_age, na.rm=T)
+#mean(Tennis_hist$loser_age, na.rm=T)
+```
+
+
+
+```{r Fréquence par terrain}
+library(ggplot2)
+#value <- prop.table(table(Tennis_hist$surface))*100
+#value
+
+#ggplot(Tennis_hist, aes(x=factor(1), fill=surface))+geom_bar(width = 1)+coord_polar("y")
+
+```
+```{r Fréquence par pays}
+#freq_pays <- data.frame(table(Tennis_hist$winner_ioc))
+#new <- data.table(freq_pays[with(freq_pays,order(-Freq)),])
+#new <- new[1:10,]
+#p<-ggplot(data=new, aes(x=Var1,y=Freq))+geom_bar(stat="identity",fill="steelblue")+geom#_text(aes(label=Freq),vjust=-0.3,size=3.5)+theme_minimal()
+#p
+#p + coord_flip()
+```
+Nombre de matches gagnés par nationalité (TOP 10) ... 
+
+# Retraitement
+
+Toutes les variables d'origine sont conservées et nous en créons d'autres, de trois types :
+
+  • Caractéristiques du joueur : fatigue, terrain de prédilection ...  
+  • Nombre de victoires : sur la saison actuelle, la précédente, nombre de titres ...  
+  • Caractéristiques du jeu : Taux de ace, service gagnant, ...
+
+Au total, ce sont 27 nouvelles variables qui viennent s'ajouter aux 49 variables de base. 
+
+Enfin, nous retirons de notre base les matchs 'coupe Davis' et ceux antérieurs à 1990.
+
+La table finale contient 79 125 lignes (matchs) et 76 variables (seulement 64 serviront pour les modèles).
+
+Quelques illustration de la base finale :
+Mettre un visuel sur la fatigue(camembert), nombre de victoires par âge
+
+```{r}
+#plot(table_score$age~table_score$NbTitre)
+#ggplot(table_score, aes(x=NbTitre, y=age)) + geom_point() 
+#ggplot(table_score, aes(x=NbTitre, y=age)) + geom_point() + geom_smooth(method=lm)
+#ggplot(table_score, aes(x=NbTitre, y=age)) + geom_point() + geom_smooth()
+```
+Plus la différence d'âge est importante, plus le nombre de victoire est important?
+
+ 
+# Plan
+
+##3 onglets :  
+    1. Modélisation : dans lequel nous présentons les différentes méthodes utilisées, avec l'erreur de mauvais classement associée et la courbe ROC pour chaucune de ses méthodes.  
+    2. Application : application dynamique avec une mise en situation d'un match, choix des paramètres du match ...  
+    3. About : 
+
+
+
+
+ 
+
+
