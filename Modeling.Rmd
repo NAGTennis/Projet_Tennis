@@ -1,4 +1,3 @@
----
 title: "Scoring"
 output: html_document
 ---
@@ -20,6 +19,11 @@ library(plotROC)
 library(glmnet)
 library(randomForest)
 library(data.table)
+library(foreach)    # install.packages('foreach')
+library(caret)      # install.packages('caret', dependencies = c("Depends", "Suggests"))
+library(doParallel) 
+library(dplyr)
+registerDoParallel(makeCluster(4))
 ```
 
 Création d'une variable année pour faire notre cross validation
@@ -30,7 +34,6 @@ table_score_sauv<-table_score
 #Création de l'annee
 Annee<-substr(as.character(table_score$tourney_date),1,4)
 #Dernier retraitement 
-
 table_score<-cbind(table_score,Annee)
 table_score<-na.omit(table_score)
 f_replaceNA = function(DT) {
@@ -40,15 +43,12 @@ f_replaceNA = function(DT) {
     set(DT,which(is.na(DT[[j]])),j,0)
   
 }
-
 f_replaceNA(table_score)
 table_score[,cible:=as.factor(coin)]
 training_table <- table_score[Annee<2018,]
 test_table <- table_score[Annee==2018,]
-
 training_table[,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
 test_table[,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
-
 ```
 Paramètres de la boucle AnneeDeb est la première année sur laquelle 
 on veut faire de la prédiction de l AnneeDeb à l AnneeFin, en regardant 4
@@ -58,12 +58,9 @@ Le paramètre RES est à regler en fonction des modèles appliqués
 
 Preparation des paramètres ante-modèlisation (RES est à modifier selon les modèles utilisés)
 ```{r}
-
 RES<- data.frame(Y=test_table$coin,RegLog=0,Ridge1=0,Ridge2=0,ElNet=0,
                  SVM=0,Reseau=0,XGBoost=0,SVM2=0,Reseau2=0)
 set.seed(1234)
-
-
 ```
 
 Modélisation en boucle
@@ -90,57 +87,46 @@ f_replaceNA = function(DT) {
 func<- function(x){
   ifelse(x<0.50,0,1)
 }
-
 f_replaceNA(table_score)
 table_score[,cible:=as.factor(coin)]
-
 ech<-sample(1:nrow(table_score))
 cbind(table_score,ech)
 bloc<-4
 nbr_ligne<-1000
 table_score_new <- table_score[ech<nbr_ligne,]
 indb <- sample(1:nrow(table_score_new)%%bloc+1)
-
 RES<-data.frame(Y=table_score_new$cible,RegLog=0,Ridge=0,ElNet=0,                  Lasso=0, SVM=0,Reseau=0,XGBoost=0,SVM2=0,Reseau2=0)
-
 ntree<-100
-
-for (i in 1:bloc){
+library(xgboost)
+library(plotROC)
+library(glmnet)
+library(randomForest)
+library(data.table)
+library(foreach)    # install.packages('foreach')
+library(caret)      # install.packages('caret', dependencies = c("Depends", "Suggests"))
+library(doParallel) 
+foreach (i=1:bloc,.combine=rbind, .packages = c("data.table","xgboost","plotROC","glmnet","randomForest","caret","e1071"))  %dopar% {
   table_score_new <- table_score[ech<nbr_ligne,][,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
 Ytrain <- as.matrix(table_score_new[,c("cible")])[indb!=i,]
 Xtrain <- as.matrix(table_score_new[,c("coin","cible"):=NULL])[indb!=i,]
 Xtest<-as.matrix(table_score_new[indb==i,])
   mod1 <- glmnet(Xtrain,Ytrain, family='binomial',standardize = TRUE,lambda=0, alpha=0) # <------------ Reg log
- RES[indb==i,"RegLog"]<- predict(mod1,Xtest, type='class', s=c(0)) 
 #sum(test_table$coin == pred1)/nrow(test_table)
-
 #2) Ridge
 mod2 <- glmnet(Xtrain,Ytrain,family='binomial',alpha=0)
-
 cv_mod2 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=0,keep=TRUE)
-
 pred2 <- predict(cv_mod2,Xtest,s=c(cv_mod2$lambda.min,cv_mod2$lambda.1se),type='class')
-RES[indb==i,"Ridge"]  <- pred2[,2]
-
-
-
 #3) Elasticnet
-mod3 <- glmnet(Xtrain,Ytrain,family='binomial', alpha=0.5)
 cv_mod3 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=0.5,foldid=cv_mod2$foldid) 
-RES[indb==i,"ElNet"] <- predict(cv_mod3,Xtest,type='class',s=c(cv_mod3$lambda.min))
-
+pred3 <- predict(cv_mod3,Xtest,s=c(cv_mod3$lambda.min,cv_mod3$lambda.1se),type='class')
 #4)Lasso
-mod4 <- glmnet(Xtrain,Ytrain,family='binomial',alpha=1)
 cv_mod4 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=1,keep=TRUE)
-RES[indb==i,"Lasso"]  <- predict(cv_mod4,Xtest,type='class',s=c(cv_mod4$lambda.min))
-
+pred4 <- predict(cv_mod4,Xtest,s=c(cv_mod4$lambda.min,cv_mod4$lambda.1se),type='class')
 #5)XGBoost
- xgboost_csv<- xgb.cv(data=Xtrain, label = Ytrain, max.depth=15,nfold=5, eta=2/ntree, nrounds=ntree,objective="binary:logistic")
- 
- xgboost_csv<- xgb.cv(data=Xtrain,label = Ytrain, max.depth=15,nfold=5, eta=2/ntree, nrounds=ntree,objective="binary:logistic")
+xgboost_mod<- xgboost(data=Xtrain,label = Ytrain, max.depth=25, eta=0.1, nrounds=32,objective="binary:logistic")
   y_pred<-predict(xgboost_mod,Xtest)
-  RES[indb==i,"XGBoost"] <-lapply(y_pred,FUN = func)
-
+  
+  
 }
   Err<-function(x){
    err<- 1-sum(RES[x]==RES["Y"])/nrow(RES)
@@ -156,7 +142,6 @@ err_Elnet
 err_Lasso
 err_Ridge
 err_Reglog
-
 xgboostModelCV <- xgb.cv(data =  DMMatrixTrain, nrounds = ntrees, nfold = 5, showsd = TRUE, 
                            metrics = "rmse", verbose = TRUE, "eval_metric" = "rmse",
                            "objective" = "reg:linear", "max.depth" = 15, "eta" = 2/ntrees,                               
@@ -164,7 +149,6 @@ xgboostModelCV <- xgb.cv(data =  DMMatrixTrain, nrounds = ntrees, nfold = 5, sho
 ```
 
 ```{r}
-
 load("Data/table_score.RData")
 table_score<-na.omit(table_score)
 f_replaceNA = function(DT) {
@@ -177,57 +161,51 @@ f_replaceNA = function(DT) {
 func<- function(x){
   ifelse(x<0.50,0,1)
 }
-
 f_replaceNA(table_score)
 table_score[,cible:=as.factor(coin)]
-
 ech<-sample(1:nrow(table_score))
 cbind(table_score,ech)
 bloc<-4
 nbr_ligne<-1000
 table_score_new <- table_score[ech<nbr_ligne,]
 indb <- sample(1:nrow(table_score_new)%%bloc+1)
+RES<-data.frame(Y=table_score_new$cible,RegLog=0,Ridge=0,ElNet=0,Lasso=0, SVM=0,Reseau=0,XGBoost=0,SVM2=0,Reseau2=0)
 
-RES<-data.frame(Y=table_score_new$cible,RegLog=0,Ridge=0,ElNet=0,                  Lasso=0, SVM=0,Reseau=0,XGBoost=0,SVM2=0,Reseau2=0)
-for (i in 1:bloc){
-i=1
+x<-foreach (i=1:bloc,combine('cbind'), .packages = c("data.table","xgboost","plotROC","glmnet","randomForest","caret","e1071"))  %dopar% {
   table_score_new <- table_score[ech<nbr_ligne,][,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
 Ytrain <- as.matrix(table_score_new[,c("cible")])[indb!=i,]
 Xtrain <- as.matrix(table_score_new[,c("coin","cible"):=NULL])[indb!=i,]
 Xtest<-as.matrix(table_score_new[indb==i,])
   mod1 <- glmnet(Xtrain,Ytrain, family='binomial',standardize = TRUE,lambda=0, alpha=0) # <------------ Reg log
- RES[indb==i,"RegLog"]<- predict(mod1,Xtest, type='class', s=c(0)) 
+ RES[indb==i,"RegLog"]<- predict(mod1,Xtest, type='class' ) 
 #sum(test_table$coin == pred1)/nrow(test_table)
-
 #2) Ridge
-mod2 <- glmnet(Xtrain,Ytrain,family='binomial',alpha=0)
 
-cv_mod2 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=0,keep=TRUE)
+#  mod2 <- glmnet(Xtrain,Ytrain,family='binomial',alpha=0)
+# cv_mod2 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=0,keep=TRUE)
+# pred2 <- predict(cv_mod2,Xtest,s=c(cv_mod2$lambda.min,cv_mod2$lambda.1se),type='class')
+# RES[indb==i,"Ridge"]  <- pred2[,2]
+# #3) Elasticnet
+# mod3 <- glmnet(Xtrain,Ytrain,family='binomial', alpha=0.5)
+# cv_mod3 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=0.5,foldid=cv_mod2$foldid) 
+# RES[indb==i,"ElNet"] <- predict(cv_mod3,Xtest,type='class',s=c(cv_mod3$lambda.min))
+# #4)Lasso
+# mod4 <- glmnet(Xtrain,Ytrain,family='binomial',alpha=1)
+# cv_mod4 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=1,keep=TRUE)
+# RES[indb==i,"Lasso"]  <- predict(cv_mod4,Xtest,type='class',s=c(cv_mod4$lambda.min))
+#  xgboost_mod<- xgboost(data=Xtrain,label = Ytrain, max.depth=25, eta=0.1, nrounds=32,objective="binary:logistic")
+#   y_pred<-predict(xgboost_mod,Xtest)
+ # RES[indb==i,"XGBoost"] <-lapply(y_pred,FUN = func)
 
-pred2 <- predict(cv_mod2,Xtest,s=c(cv_mod2$lambda.min,cv_mod2$lambda.1se),type='class')
-RES[indb==i,"Ridge"]  <- pred2[,2]
-
-
-
-#3) Elasticnet
-mod3 <- glmnet(Xtrain,Ytrain,family='binomial', alpha=0.5)
-cv_mod3 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=0.5,foldid=cv_mod2$foldid) 
-RES[indb==i,"ElNet"] <- predict(cv_mod3,Xtest,type='class',s=c(cv_mod3$lambda.min))
-
-#4)Lasso
-mod4 <- glmnet(Xtrain,Ytrain,family='binomial',alpha=1)
-cv_mod4 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=1,keep=TRUE)
-RES[indb==i,"Lasso"]  <- predict(cv_mod4,Xtest,type='class',s=c(cv_mod4$lambda.min))
-
- xgboost_mod<- xgboost(data=Xtrain,label = Ytrain, max.depth=25, eta=0.1, nrounds=32,objective="binary:logistic")
-  y_pred<-predict(xgboost_mod,Xtest)
-  RES[indb==i,"XGBoost"] <-lapply(y_pred,FUN = func)
 
 }
+x
+
+rbindlist(foreach (i = 1:3) %dopar% unique(t2))  }
   Err<-function(x){
    err<- 1-sum(RES[x]==RES["Y"])/nrow(RES)
    return(err)
-  }
+   
 err_Xgb<-Err("XGBoost")
 err_Elnet<-Err("ElNet")
 err_Lasso<-Err("Lasso")
@@ -256,4 +234,3 @@ mdcv <- xgb.cv(data=Xtrain,labels=Ytrain, params = param, nthread=6,
                 nfold=cv.nfold, nrounds=cv.nround,
                 verbose = T)
 ```
-
