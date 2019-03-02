@@ -23,7 +23,7 @@ library(foreach)    # install.packages('foreach')
 library(caret)      # install.packages('caret', dependencies = c("Depends", "Suggests"))
 library(doParallel) 
 library(dplyr)
-registerDoParallel(makeCluster(4))
+registerDoParallel(makeCluster(2))
 ```
 
 Création d'une variable année pour faire notre cross validation
@@ -76,7 +76,6 @@ model_glmnet <- train(churn_y ~ ., data = train,
 Modélisation boucle for
 ```{r}
 load("Data/table_score.RData")
-table_score<-na.omit(table_score)
 f_replaceNA = function(DT) {
   
   for (j in seq_len(ncol(DT)))
@@ -88,6 +87,7 @@ func<- function(x){
   ifelse(x<0.50,0,1)
 }
 f_replaceNA(table_score)
+table_score<-na.omit(table_score)
 table_score[,cible:=as.factor(coin)]
 ech<-sample(1:nrow(table_score))
 cbind(table_score,ech)
@@ -148,8 +148,6 @@ xgboostModelCV <- xgb.cv(data =  DMMatrixTrain, nrounds = ntrees, nfold = 5, sho
                            "subsample" = currentSubsampleRate, "colsample_bytree" = currentColsampleRate)
 ```
 
-
-Modelisation boucle foreach
 ```{r}
 load("Data/table_score.RData")
 table_score<-na.omit(table_score)
@@ -189,7 +187,8 @@ dat <- table_score_new %>%
 Xtest<-as.matrix(dat)
 
 mod1 <- glmnet(Xtrain,as.numeric(Ytrain), family='binomial',standardize = TRUE,lambda=0, alpha=0) # <------------ Reg log
- RES[, "RegLog"]<- predict(mod1,Xtest, type='class', s=c(0) )[, 1]
+choix <- step(mod,direction = "both")
+ RES[, "RegLog"]<- predict(choix,Xtest, type='class', s=c(0) )[, 1]
 #sum(test_table$coin == pred1)/nrow(test_table)
 #2) Ridge
 
@@ -222,20 +221,92 @@ res<-rbindlist(x)
 err<-cbind(Err("RegLog"),Err("Ridge"),Err("ElNet"),Err("Lasso"),Err("XGBoost"))
 ```
 
-Optimisation XGBoost, à travailler
 ```{r}
-param <- list(objective = "binary:logistic",
-      max_depth = 8,
-      eta = 0.05,
-      gamma = 0.01, 
-      subsample = 0.9,
-      colsample_bytree = 0.8, 
-      min_child_weight = 4,
-      max_delta_step = 1
-      )
-cv.nround = 1000
-cv.nfold = 5
-mdcv <- xgb.cv(data=Xtrain,labels=Ytrain, params = param, nthread=6, 
-                nfold=cv.nfold, nrounds=cv.nround,
-                verbose = T)
-```
+# https://www.hackerearth.com/fr/practice/machine-learning/machine-learning-algorithms/beginners-tutorial-on-xgboost-parameter-tuning-r/tutorial/
+  
+load("Data/table_score.RData")
+f_replaceNA = function(DT) {
+  
+  for (j in seq_len(ncol(DT)))
+    
+    set(DT,which(is.na(DT[[j]])),j,0)
+  
+}
+func<- function(x){
+  ifelse(x<0.50,0,1)
+}
+f_replaceNA(table_score)
+table_score<-na.omit(table_score)
+
+table_score[,cible:=as.factor(coin)]
+ech<-sample(1:nrow(table_score))
+table_score<-cbind(table_score,ech)
+nbr_ligne<-20000
+  table_score_new <- table_score[ech<nbr_ligne,][,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name","cible") := NULL]
+
+  train<-table_score_new[ech>0.2*nbr_ligne]
+  test<-table_score_new[ech<=0.2*nbr_ligne]
+labels <- train$coin 
+ ts_label <- test$coin
+ new_tr <- model.matrix(~.+0,data = train[,-c("coin"),with=F]) 
+ new_ts <- model.matrix(~.+0,data = test[,-c("coin"),with=F])
+
+#convert factor to numeric 
+ labels <- as.numeric(labels)
+ ts_label <- as.numeric(ts_label)
+
+dtrain <- xgb.DMatrix(data = new_tr,label = labels) 
+dtest <- xgb.DMatrix(data = new_ts,label=ts_label)
+
+
+xgbcv <- xgb.cv( params = params, data = dtrain, nrounds = 100, nfold = 5, showsd = T, stratified = T, print_every_n = 10, early_stopping_rounds = 50, maximize = F)
+
+  xgb1 <- xgb.train (params = params, data = dtrain, nrounds = 11, watchlist = list(val=dtest,train=dtrain), print_every_n = 5, early_stopping_rounds = 5, maximize = F , eval_metric = "error")
+#model prediction
+xgbpred <- predict (xgb1,dtest)
+xgbpred <- ifelse (xgbpred > 0.5,1,0)
+confusionMatrix (xgbpred, ts_label)
+prop.table(table(xgbpred==ts_label))
+
+mat <- xgb.importance (feature_names = colnames(new_tr),model = xgb1)
+xgb.plot.importance (importance_matrix = mat[1:20]) 
+
+traintask <- makeClassifTask (data = train,target = "target")
+testtask <- makeClassifTask (data = test,target = "target")
+
+#do one hot encoding`<br/> 
+traintask <- createDummyFeatures (obj = traintask,target = "target") 
+testtask <- createDummyFeatures (obj = testtask,target = "target")
+
+#create learner
+> lrn <- makeLearner("classif.xgboost",predict.type = "response")
+> lrn$par.vals <- list( objective="binary:logistic", eval_metric="error", nrounds=100L, eta=0.1)
+
+#set parameter space
+> params <- makeParamSet( makeDiscreteParam("booster",values = c("gbtree","gblinear")), makeIntegerParam("max_depth",lower = 3L,upper = 10L), makeNumericParam("min_child_weight",lower = 1L,upper = 10L), makeNumericParam("subsample",lower = 0.5,upper = 1), makeNumericParam("colsample_bytree",lower = 0.5,upper = 1))
+
+#set resampling strategy
+rdesc <- makeResampleDesc("CV",stratify = T,iters=5L)
+
+ctrl <- makeTuneControlRandom(maxit = 10L)
+
+library(parallel)
+> library(parallelMap) 
+> parallelStartSocket(cpus = detectCores())
+
+#parameter tuning
+mytune <- tuneParams(learner = lrn, task = traintask, resampling = rdesc, measures = acc, par.set = params, control = ctrl, show.info = T)
+mytune$y 
+#0.873069
+
+#set hyperparameters
+lrn_tune <- setHyperPars(lrn,par.vals = mytune$x)
+
+#train model
+xgmodel <- train(learner = lrn_tune,task = traintask)
+
+#predict model
+xgpred <- predict(xgmodel,testtask)
+
+confusionMatrix(xgpred$data$response,xgpred$data$truth)
+prop.table(table(xgpred$data$response==xgpred$data$truth))
