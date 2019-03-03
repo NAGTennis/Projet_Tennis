@@ -23,9 +23,7 @@ library(foreach)    # install.packages('foreach')
 library(caret)      # install.packages('caret', dependencies = c("Depends", "Suggests"))
 library(doParallel) 
 library(dplyr)
-library(parallelMap) 
-
-registerDoParallel(makeCluster(detectCores()))
+registerDoParallel(makeCluster(2))
 ```
 
 Création d'une variable année pour faire notre cross validation
@@ -73,10 +71,83 @@ model_glmnet <- train(churn_y ~ ., data = train,
   method = "glmnet",
   trControl = myControl
 )
+<<<<<<< HEAD
 
+Modélisation boucle for
+```{r}
+load("Data/table_score.RData")
+f_replaceNA = function(DT) {
+  
+  for (j in seq_len(ncol(DT)))
+    
+    set(DT,which(is.na(DT[[j]])),j,0)
+  
+}
+func<- function(x){
+  ifelse(x<0.50,0,1)
+}
+f_replaceNA(table_score)
+table_score<-na.omit(table_score)
+table_score[,cible:=as.factor(coin)]
+ech<-sample(1:nrow(table_score))
+cbind(table_score,ech)
+bloc<-4
+nbr_ligne<-1000
+table_score_new <- table_score[ech<nbr_ligne,]
+indb <- sample(1:nrow(table_score_new)%%bloc+1)
+RES<-data.frame(Y=table_score_new$cible,RegLog=0,Ridge=0,ElNet=0,                  Lasso=0, SVM=0,Reseau=0,XGBoost=0,SVM2=0,Reseau2=0)
+ntree<-100
+library(xgboost)
+library(plotROC)
+library(glmnet)
+library(randomForest)
+library(data.table)
+library(foreach)    # install.packages('foreach')
+library(caret)      # install.packages('caret', dependencies = c("Depends", "Suggests"))
+library(doParallel) 
+foreach (i=1:bloc,.combine=rbind, .packages = c("data.table","xgboost","plotROC","glmnet","randomForest","caret","e1071"))  %dopar% {
+  table_score_new <- table_score[ech<nbr_ligne,][,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
+Ytrain <- as.matrix(table_score_new[,c("cible")])[indb!=i,]
+Xtrain <- as.matrix(table_score_new[,c("coin","cible"):=NULL])[indb!=i,]
+Xtest<-as.matrix(table_score_new[indb==i,])
+  mod1 <- glmnet(Xtrain,Ytrain, family='binomial',standardize = TRUE,lambda=0, alpha=0) # <------------ Reg log
+#sum(test_table$coin == pred1)/nrow(test_table)
+#2) Ridge
+mod2 <- glmnet(Xtrain,Ytrain,family='binomial',alpha=0)
+cv_mod2 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=0,keep=TRUE)
+pred2 <- predict(cv_mod2,Xtest,s=c(cv_mod2$lambda.min,cv_mod2$lambda.1se),type='class')
+#3) Elasticnet
+cv_mod3 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=0.5,foldid=cv_mod2$foldid) 
+pred3 <- predict(cv_mod3,Xtest,s=c(cv_mod3$lambda.min,cv_mod3$lambda.1se),type='class')
+#4)Lasso
+cv_mod4 <- cv.glmnet(Xtrain,Ytrain,family='binomial',type.measure='class',nfolds=10,alpha=1,keep=TRUE)
+pred4 <- predict(cv_mod4,Xtest,s=c(cv_mod4$lambda.min,cv_mod4$lambda.1se),type='class')
+#5)XGBoost
+xgboost_mod<- xgboost(data=Xtrain,label = Ytrain, max.depth=25, eta=0.1, nrounds=32,objective="binary:logistic")
+  y_pred<-predict(xgboost_mod,Xtest)
+  
+  
+}
+  Err<-function(x){
+   err<- 1-sum(RES[x]==RES["Y"])/nrow(RES)
+   return(err)
+  }
+err_Xgb<-Err("XGBoost")
+err_Elnet<-Err("ElNet")
+err_Lasso<-Err("Lasso")
+err_Ridge<-Err("Ridge")
+err_Reglog<-Err("RegLog")
+err_Xgb
+err_Elnet
+err_Lasso
+err_Ridge
+err_Reglog
+xgboostModelCV <- xgb.cv(data =  DMMatrixTrain, nrounds = ntrees, nfold = 5, showsd = TRUE, 
+                           metrics = "rmse", verbose = TRUE, "eval_metric" = "rmse",
+                           "objective" = "reg:linear", "max.depth" = 15, "eta" = 2/ntrees,                               
+                           "subsample" = currentSubsampleRate, "colsample_bytree" = currentColsampleRate)
+```
 
-
-Modelisation boucle foreach
 ```{r}
 load("Data/table_score.RData")
 table_score<-na.omit(table_score)
@@ -94,32 +165,30 @@ f_replaceNA(table_score)
 table_score[,cible:=as.factor(coin)]
 ech<-sample(1:nrow(table_score))
 cbind(table_score,ech)
-bloc<-8
+bloc<-4
+nbr_ligne<-1000
 table_score_new <- table_score[ech<=nbr_ligne,]
-indb <- sample(1:nrow(table_score)%%bloc+1)
-RES<-data.frame(Y=table_score$cible,RegLog=0,Ridge=0,ElNet=0,Lasso=0, SVM=0,Reseau=0,XGBoost=0,SVM2=0,Reseau2=0)
-  table_score <- table_score[,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
+indb <- sample(1:nrow(table_score_new)%%bloc+1)
+RES<-data.frame(Y=table_score_new$cible,RegLog=0,Ridge=0,ElNet=0,Lasso=0, SVM=0,Reseau=0,XGBoost=0,SVM2=0,Reseau2=0)
+  table_score_new <- table_score[ech<nbr_ligne,][,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name") := NULL]
 
-#Début de la boucle foreach
 x<-foreach (i=1:bloc, .packages = c("data.table","xgboost","plotROC","glmnet","randomForest","caret","e1071","dplyr"))  %dopar% {
+  RES<-data.frame(Y=table_score_new[indb==i]$cible,RegLog=0,Ridge=0,ElNet=0,Lasso=0, SVM=0,Reseau=0,XGBoost=0,SVM2=0,Reseau2=0,Id=i)
 
-  RES<-data.frame(Y=table_score[indb==i]$cible,RegLog=0,Ridge=0,ElNet=0,Lasso=0, SVM=0,Reseau=0,XGBoost=0,SVM2=0,Reseau2=0,Id=i)
-
-Ytrain <- as.matrix(table_score[,c("cible")])[indb!=i,]
-
-dat <- table_score %>% 
+Ytrain <- as.matrix(table_score_new[,c("cible")])[indb!=i,]
+dat <- table_score_new %>% 
   filter(indb != i) %>%
   select(- one_of('coin', 'cible'))
 
 Xtrain <- as.matrix(dat)
-dat <- table_score %>% 
+dat <- table_score_new %>% 
   filter(indb == i) %>%
   select(- one_of('coin', 'cible'))
 Xtest<-as.matrix(dat)
 
-mod1 <- glmnet(Xtrain,as.numeric(Ytrain), family='binomial',standardize = TRUE,lambda=0, alpha=0) 
-Reglog<-step(mod1)
- RES[, "RegLog"]<- predict(mod1,Xtest, type='class', s=c(0) )[, 1]
+mod1 <- glmnet(Xtrain,as.numeric(Ytrain), family='binomial',standardize = TRUE,lambda=0, alpha=0) # <------------ Reg log
+choix <- step(mod,direction = "both")
+ RES[, "RegLog"]<- predict(choix,Xtest, type='class', s=c(0) )[, 1]
 #sum(test_table$coin == pred1)/nrow(test_table)
 #2) Ridge
 
@@ -152,12 +221,9 @@ res<-rbindlist(x)
 err<-cbind(Err("RegLog"),Err("Ridge"),Err("ElNet"),Err("Lasso"),Err("XGBoost"))
 ```
 
-Optimisation XGBoost, à travailler
 ```{r}
-#https://www.hackerearth.com/fr/practice/machine-learning/machine-learning-algorithms/beginners-tutorial-on-xgboost-parameter-tuning-r/tutorial/
-
-set.seed(1234)
-
+# https://www.hackerearth.com/fr/practice/machine-learning/machine-learning-algorithms/beginners-tutorial-on-xgboost-parameter-tuning-r/tutorial/
+  
 load("Data/table_score.RData")
 f_replaceNA = function(DT) {
   
@@ -166,95 +232,81 @@ f_replaceNA = function(DT) {
     set(DT,which(is.na(DT[[j]])),j,0)
   
 }
-
+func<- function(x){
+  ifelse(x<0.50,0,1)
+}
 f_replaceNA(table_score)
-table_score[,cible:=as.factor(coin)]
 table_score<-na.omit(table_score)
+
+table_score[,cible:=as.factor(coin)]
 ech<-sample(1:nrow(table_score))
 table_score<-cbind(table_score,ech)
 nbr_ligne<-20000
-table_score_new <- table_score[ech<=nbr_ligne,]
-  table_score_new <- table_score_new[,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name","coin") := NULL]
-train<-table_score_new[ech>0.2*nbr_ligne,]
-test<-table_score_new[ech<=0.2*nbr_ligne,]
+  table_score_new <- table_score[ech<nbr_ligne,][,c("tourney_id","tourney_name","surface","tourney_date","tourney_level","match_num","round","round_num","p1_id","p1_name","p2_id","p2_name","cible") := NULL]
 
-labels <- train$cible 
-ts_label <- test$cible
-new_tr <- model.matrix(~.+0,data = train[,-c("cible"),with=F]) 
- new_ts <- model.matrix(~.+0,data = test[,-c("cible"),with=F])
+  train<-table_score_new[ech>0.2*nbr_ligne]
+  test<-table_score_new[ech<=0.2*nbr_ligne]
+labels <- train$coin 
+ ts_label <- test$coin
+ new_tr <- model.matrix(~.+0,data = train[,-c("coin"),with=F]) 
+ new_ts <- model.matrix(~.+0,data = test[,-c("coin"),with=F])
 
- labels <- as.numeric(labels)-1
- ts_label <- as.numeric(ts_label)-1
-  
- 
+#convert factor to numeric 
+ labels <- as.numeric(labels)
+ ts_label <- as.numeric(ts_label)
+
 dtrain <- xgb.DMatrix(data = new_tr,label = labels) 
 dtest <- xgb.DMatrix(data = new_ts,label=ts_label)
 
-params <- list(booster = "gbtree", objective = "binary:logistic", eta=0.3, gamma=0, max_depth=6, min_child_weight=1, subsample=1, colsample_bytree=1)
 
-xgbcv <- xgb.cv( params = params, data = dtrain, nrounds = 200, nfold = 5, showsd = T, stratified = T, print_every_n = 10, early_stop_round = 20, maximize = F)
+xgbcv <- xgb.cv( params = params, data = dtrain, nrounds = 100, nfold = 5, showsd = T, stratified = T, print_every_n = 10, early_stopping_rounds = 50, maximize = F)
 
-#first default - model training
- xgb1 <- xgb.train (params = params, data = dtrain, nrounds = 16, watchlist = list(val=dtest,train=dtrain), print_every_n = 5, early_stop_round = 10, maximize = F , eval_metric = "error")
+  xgb1 <- xgb.train (params = params, data = dtrain, nrounds = 11, watchlist = list(val=dtest,train=dtrain), print_every_n = 5, early_stopping_rounds = 5, maximize = F , eval_metric = "error")
 #model prediction
- xgbpred <- predict (xgb1,dtest)
- xgbpred <- ifelse (xgbpred > 0.5,1,0)
-
+xgbpred <- predict (xgb1,dtest)
+xgbpred <- ifelse (xgbpred > 0.5,1,0)
 confusionMatrix (xgbpred, ts_label)
 prop.table(table(xgbpred==ts_label))
-  #Accuracy -  66.55%` 
 
-#view variable importance plot
- mat <- xgb.importance (feature_names = colnames(new_tr),model = xgb1)
- xgb.plot.importance (importance_matrix = mat[1:20]) 
+mat <- xgb.importance (feature_names = colnames(new_tr),model = xgb1)
+xgb.plot.importance (importance_matrix = mat[1:20]) 
 
- fact_col <- colnames(train)[sapply(train,is.character)]
+traintask <- makeClassifTask (data = train,target = "target")
+testtask <- makeClassifTask (data = test,target = "target")
 
- for(i in fact_col) set(train,j=i,value = factor(train[[i]]))
- for (i in fact_col) set(test,j=i,value = factor(test[[i]]))
- 
-traintask <- mlr::makeClassifTask (data = as.data.frame(train),target = "cible")
- testtask <- mlr::makeClassifTask (data = as.data.frame(test),target = "cible")
+#do one hot encoding`<br/> 
+traintask <- createDummyFeatures (obj = traintask,target = "target") 
+testtask <- createDummyFeatures (obj = testtask,target = "target")
 
-#do one hot encoding`<br/ 
- #traintask <- createDummyFeatures (obj = traintask,target = "cible")
- # testtask <- createDummyFeatures (obj = testtask,target = "cible")
-
- traintask <- createDummyFeatures (obj = traintask) 
- testtask <- createDummyFeatures (obj = testtask)
-
-lrn <- makeLearner("classif.xgboost",predict.type = "response")
- lrn$par.vals <- list( objective="binary:logistic", eval_metric="error", nrounds=100L, eta=0.1)
+#create learner
+> lrn <- makeLearner("classif.xgboost",predict.type = "response")
+> lrn$par.vals <- list( objective="binary:logistic", eval_metric="error", nrounds=100L, eta=0.1)
 
 #set parameter space
- params <- makeParamSet( makeDiscreteParam("booster",values = c("gbtree","gblinear")), makeIntegerParam("max_depth",lower = 3L,upper = 10L), makeNumericParam("min_child_weight",lower = 1L,upper = 10L), makeNumericParam("subsample",lower = 0.5,upper = 1), makeNumericParam("colsample_bytree",lower = 0.5,upper = 1))
+> params <- makeParamSet( makeDiscreteParam("booster",values = c("gbtree","gblinear")), makeIntegerParam("max_depth",lower = 3L,upper = 10L), makeNumericParam("min_child_weight",lower = 1L,upper = 10L), makeNumericParam("subsample",lower = 0.5,upper = 1), makeNumericParam("colsample_bytree",lower = 0.5,upper = 1))
 
 #set resampling strategy
- rdesc <- makeResampleDesc("CV",stratify = T,iters=5L)
+rdesc <- makeResampleDesc("CV",stratify = T,iters=5L)
 
 ctrl <- makeTuneControlRandom(maxit = 10L)
 
 library(parallel)
- library(parallelMap) 
- parallelStartSocket(cpus = detectCores())
+> library(parallelMap) 
+> parallelStartSocket(cpus = detectCores())
 
 #parameter tuning
 mytune <- tuneParams(learner = lrn, task = traintask, resampling = rdesc, measures = acc, par.set = params, control = ctrl, show.info = T)
- mytune$y 
+mytune$y 
+#0.873069
 
 #set hyperparameters
- lrn_tune <- setHyperPars(lrn,par.vals = mytune$x)
+lrn_tune <- setHyperPars(lrn,par.vals = mytune$x)
 
 #train model
- xgmodel <- train(learner = lrn_tune,task = traintask)
+xgmodel <- train(learner = lrn_tune,task = traintask)
 
 #predict model
- xgpred <- predict(xgmodel,testtask)
- confusionMatrix(xgpred$data$response,xgpred$data$truth)
+xgpred <- predict(xgmodel,testtask)
 
-```
-
-
-<<<<<<< HEAD
-
-```
+confusionMatrix(xgpred$data$response,xgpred$data$truth)
+prop.table(table(xgpred$data$response==xgpred$data$truth))
