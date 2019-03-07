@@ -16,16 +16,16 @@ Type_surfaces <- c(" ",unique(Tennis_table[tourney_date>'20170101',.(surface)]))
 Nom_tournois <- c(" ",unique(Tennis_table[tourney_date>'20170101',.(tourney_name)]))
 models <- c("","Régression logistique", "Ridge", "Lasso", "Elasticnet", "XGBoost", "Random Forest")
 
-rmdfiles <- c("../Presentation.Rmd")
-sapply(rmdfiles, knit, quiet = T)
+# rmdfiles <- c("../Presentation.Rmd")
+# sapply(rmdfiles, knit, quiet = T)
 shinyUI(
   
   # navbarPage
-  navbarPage("Prédictions ATP",
-             
+  navbarPage(theme=shinytheme("flatly"),
+             "Prédictions ATP",
              # Onglet Présentation
-             tabPanel("Présentation", 
-                  withMathJax(includeMarkdown("Presentation.md"))
+             tabPanel("Présentation", ""
+                  # withMathJax(includeMarkdown("Presentation.md"))
              ), 
              
              # Onlget Modélisation
@@ -73,16 +73,29 @@ shinyUI(
                           ,column(width = 9,
                             wellPanel(
                               fluidRow(height='auto',
-                                splitLayout(
-                                  textOutput("nom_j1")
-                                  ,HTML("<div style='text-align:center; font-size: 20px'>contre</div>")
-                                  ,textOutput("nom_j2")
-                                )
-                                ,
-                                splitLayout(align='middle'
-                                  ,imageOutput("image_j1")
-                                  ,imageOutput("image_surface_tournois")
-                                  ,imageOutput("image_j2")
+                                tabsetPanel(
+                                  tabPanel("Match",
+                                    wellPanel(style = "background-color: #ffffff;"
+                                      ,splitLayout(
+                                         textOutput("nom_j1")
+                                         ,HTML("<div style='text-align:center; font-size: 20px'>contre</div>")
+                                         ,textOutput("nom_j2")
+                                       )
+                                       ,
+                                        splitLayout(align='middle'
+                                          ,imageOutput("image_j1")
+                                          ,imageOutput("image_surface_tournois")
+                                          ,imageOutput("image_j2")
+                                        )
+                                    )
+                                  )
+                                  ,tabPanel("Statistiques Joueurs", 
+                                    wellPanel(style = "background-color: #ffffff;"
+                                      ,fluidRow(height='auto',
+                                        amChartsOutput("stats_joueurs")
+                                      )
+                                    ) 
+                                  )
                                 )
                                 ,
                                 # bouton de prédiction

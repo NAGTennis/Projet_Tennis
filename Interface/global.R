@@ -15,9 +15,12 @@ library(knitr)
 #install.packages('dplyr')
 library(dplyr)
 #install.packages('dtplyr')
-library(dtplyr)
+# library(dtplyr)
 library(randomForest)
 library(ggplot2)
+library(ROCR)
+library(shinythemes)
+library(rAmCharts)
 ###############################
 #### Fonctions
 f_replaceNA = function(DT) {
