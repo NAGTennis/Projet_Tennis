@@ -47,7 +47,7 @@ f_historique <- function(Tennis_table_work,i_name,i_date=NULL,i_surface=NULL,i_t
   #OU i_date==tourney_date&round_num>i_round F=1 SF=2 QF=3 etc OU i_round=='RR' i_matchnum<match_num
   if ((!is.null(i_date))&(!is.null(i_duree))) {historique=historique[difftime(anydate(i_date),tourney_date)<=i_duree]}
   if (!is.null(i_surface)) if (i_surface!=0) {historique=historique[surface==i_surface]}
-  if (!is.null(i_tournament)) {historique=historique[tourney_name==i_tournament]}
+  if (!is.null(i_tournament)) if (i_tournament!=0) {historique=historique[tourney_name==i_tournament]}
   if (!is.null(i_opponent)) {historique=historique[opponent==i_opponent]}
   if (!is.null(i_row)) {historique=historique[,head(.SD,i_row)]}
   
@@ -209,13 +209,13 @@ f_VicT <- function(Tennis_table_work,i_name,i_date=NULL,i_surface=NULL,i_tournam
   if (!is.null(i_date)) {historique1=historique1[tourney_date<anydate(i_date)|(anydate(i_date)==tourney_date&round_num>i_round)]}
   #AJOUTER match_num<match_num ou round<i_round pour les tourney_date=i_date
   #OU i_date==tourney_date&round_num>i_round F=1 SF=2 QF=3 etc OU i_round=='RR' i_matchnum<match_num
-  if (!is.null(i_surface)) {historique1=historique1[surface==i_surface]}
+  if (!is.null(i_surface))  if (i_surface!=0) {historique1=historique1[surface==i_surface]}
   historique1_=historique1[1:min(nrow(historique1),i_row)]
   # if (!is.null(i_date)) {historique1=historique1[tourney_date<anydate(i_date)|(anydate(i_date)==tourney_date&round_num>i_round)|(anydate(i_date)==tourney_date&i_round>7&match_num<i_matchnum)]}
   #AJOUTER match_num<match_num ou round<i_round pour les tourney_date=i_date
   #OU i_date==tourney_date&round_num>i_round F=1 SF=2 QF=3 etc OU i_round=='RR' i_matchnum<match_num
   if (!is.null(i_date)) {historique2=historique2[tourney_date<anydate(i_date)|(anydate(i_date)==tourney_date&round_num>i_round)]}
-  if (!is.null(i_surface)) {historique2=historique2[surface==i_surface]}
+  if (!is.null(i_surface))  if (i_surface!=0) {historique2=historique2[surface==i_surface]}
   # if (!is.null(i_row)) {historique2=historique2[,head(.SD,i_row)]}
   # if (!is.null(i_date)) {historique2=historique2[tourney_date<anydate(i_date)|(anydate(i_date)==tourney_date&round_num>i_round)|(anydate(i_date)==tourney_date&i_round>7&match_num<i_matchnum)]}
   historique2_=historique2[1:min(nrow(historique2),i_row)]

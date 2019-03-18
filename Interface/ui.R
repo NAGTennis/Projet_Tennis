@@ -89,10 +89,36 @@ shinyUI(
                                         )
                                     )
                                   )
-                                  ,tabPanel("Statistiques Joueurs", 
+                                  ,tabPanel("Statistiques", 
+                                    wellPanel(style = "background-color: #ffffff;"
+                                      ,splitLayout(
+                                        textOutput("nom_j1_bis")
+                                        ,textOutput("nom_j2_bis")
+                                      )
+                                      ,splitLayout(
+                                        uiOutput("infos_j1")
+                                        ,uiOutput("infos_j2")
+                                      )
+                                    ) 
+                                  )
+                                  ,tabPanel("Forme du moment", 
                                     wellPanel(style = "background-color: #ffffff;"
                                       ,fluidRow(height='auto',
-                                        amChartsOutput("stats_joueurs")
+                                        amChartsOutput("stats_joueurs_10")
+                                      )
+                                    ) 
+                                  )
+                                  ,tabPanel("Tournois", 
+                                    wellPanel(style = "background-color: #ffffff;"
+                                      ,fluidRow(height='auto',
+                                        amChartsOutput("stats_joueurs_Tourn")
+                                      )
+                                    ) 
+                                  )
+                                  ,tabPanel("Head to Head", 
+                                    wellPanel(style = "background-color: #ffffff;"
+                                      ,fluidRow(height='auto',
+                                        amChartsOutput("stats_joueurs_h2h")
                                       )
                                     ) 
                                   )
@@ -127,6 +153,9 @@ shinyUI(
                                     h3("Probabilité :",style = "color : #0099ff")
                                     ,h3(textOutput("proba"))
                                   )
+                                  ,splitLayout(
+                                    amChartsOutput("stats_resultat")
+                                  )
                                 )
                                 ,imageOutput("winner_img")
                               )
@@ -141,7 +170,7 @@ shinyUI(
              )
              
              #CSS
-             ,tags$style(type = 'text/css', '#nom_j1, #nom_j2{color: #0099ff;font-size: 20px;text-align:center;overflow: hidden}')
+             ,tags$style(type = 'text/css', '#nom_j1, #nom_j2,#nom_j1_bis, #nom_j2_bis{color: #0099ff;font-size: 20px;text-align:center;overflow: hidden}')
              ,tags$style(type = 'text/css', '#image_j1, #image_j2 {max-width: 300px}')
              ,tags$style(type = 'text/css', '#winner_img{max-width: 400px}')
              ,tags$style(type = 'text/css', '.shiny-split-layout>div {vertical-align: middle;}')
