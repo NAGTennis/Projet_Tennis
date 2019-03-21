@@ -20,6 +20,7 @@ library(randomForest)
 library(ggplot2)
 library(ROCR)
 library(shinythemes)
+library(shinydashboard)
 library(rAmCharts)
 ###############################
 #### Fonctions

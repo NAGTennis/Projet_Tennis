@@ -59,7 +59,8 @@ shinyUI(dashboardPage(skin="green",
     
     
     
-                  )),
+                  )
+    ),
     
     
   dashboardBody(
