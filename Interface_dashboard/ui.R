@@ -59,19 +59,18 @@ shinyUI(dashboardPage(skin="green",
                         tabItems(
                           
                           tabItem(tabName = "Objectif",
-                                  h1("L'Objectif"),
-                                  br("L objectif est de predire le vainqueur le plus probable d un match de tennis en faisant mieux que le classement ATP :qui affiche une erreur de ..."),
-                                  br("Dans la suite, nous etudierons les liens entre la probabilite de gagner et les caracteristiques des joueurs ..."),
-                                  br(img(src="objectif2.png",width = 400, align = "center")),
+                                  h3("On veut predire le vainqueur le plus probable d un match de tennis se deroulant lors d un tournoi du circuit ATP."),
+                                  br(img(src="liste.png",width = 600, align = "center")),
+                                  br(),
                                   br("Creation d une application pour illustrer")
                                   
                           ),
                           
                           tabItem(tabName = "Données",
-                                  h1("Les données"),
-                                  br("Dans un premier temps, nous disposions de 3 jeux de données : "),
+                                  h2("Les donnees"),
+                                  br(h3("Dans un premier temps, nous disposions de 3 jeux de donnees : ")),
                                   br(img(src="donnees3.png",width = 800, align = "center")),
-                                  br("Retraitement : "),
+                                  br(h3("Retraitement : ")),
                                   br(img(src="donnees5.png",width = 600, align = "center"))
                                   
                                   
@@ -79,56 +78,84 @@ shinyUI(dashboardPage(skin="green",
                           
                           tabItem(tabName = "Description",
                                   
-                                  mainPanel(
-                                    h1("Quelques éléments descritpifs"),
-                                    br("blabla"),
-                                    box(width = 12,
-                                        title = "Nationalité des joueurs",
-                                        solidHeader = TRUE,collapsible = TRUE, background = NULL, collapsed = TRUE,
-                                        fluidRow(
-                                          column(width=6,amChartsOutput("chart_pays"))
-                                        ,column(width=6,amChartsOutput("chart_vict_pays"))
-                                        )
+                                  fluidRow(
+                                    mainPanel(
+                                      h2("Exploration des donnees"),
+                                      br(),
+                                      
+                                      
+                                      
+                                      tabBox(
+                                        title = "Quelques elements descriptifs",
+                                        # The id lets us use input$tabset1 on the server to find the current tab
+                                        id = "tabset1", height = "600px",width = 10,
+                                        tabPanel("Pays", amChartsOutput("chart_pays")),
+                                        tabPanel("Pays", amChartsOutput("chart_vict_pays")),
+                                        tabPanel("Surface", amChartsOutput("chart_surface")),
+                                        tabPanel("Fatigue", amChartsOutput("chart_fatigue")),
+                                        tabPanel("Age", amChartsOutput("chart_vict_age"))
+                                      ),
+                                      tabBox(
+                                        title = "Resultats ACP",
+                                        height = "600px",width = 10,
                                         
-                                        
-                                    ),
-                                    box(width = 12,
-                                        title = "Surface de jeu",
-                                        solidHeader = TRUE,collapsible = TRUE, background = NULL, collapsed = TRUE,
-                                        amChartsOutput("chart_surface")
-                                        
-                                    ),
-                                    box(width = 12,
-                                        title = "Fatigue des joueurs",
-                                        solidHeader = TRUE,collapsible = TRUE, background = NULL, collapsed = TRUE,
-                                        amChartsOutput("chart_fatigue")
-                                        
+                                        tabPanel("Individus", ""),
+                                        tabPanel("Variables", ""),
+                                        tabPanel("Ensemble", "")
+                                      )
                                     )
-                                    ,
-                                    box(width = 12,
-                                        title = "Age des joueurs",
-                                        solidHeader = TRUE,collapsible = TRUE, background = NULL, collapsed = TRUE,
-                                        amChartsOutput("chart_vict_age")
-                                        
-                                    )
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
                                   )
+                                  
+                                  # mainPanel(
+                                  #   h1("Quelques éléments descritpifs"),
+                                  #   br("blabla"),
+                                  #   box(width = 12,
+                                  #       title = "Nationalité des joueurs",
+                                  #       solidHeader = TRUE,collapsible = TRUE, background = NULL, collapsed = TRUE,
+                                  #       fluidRow(
+                                  #         column(width=6,amChartsOutput("chart_pays"))
+                                  #       ,column(width=6,amChartsOutput("chart_vict_pays"))
+                                  #       )
+                                  #       
+                                  #       
+                                  #   ),
+                                  #   box(width = 12,
+                                  #       title = "Surface de jeu",
+                                  #       solidHeader = TRUE,collapsible = TRUE, background = NULL, collapsed = TRUE,
+                                  #       amChartsOutput("chart_surface")
+                                  #       
+                                  #   ),
+                                  #   box(width = 12,
+                                  #       title = "Fatigue des joueurs",
+                                  #       solidHeader = TRUE,collapsible = TRUE, background = NULL, collapsed = TRUE,
+                                  #       amChartsOutput("chart_fatigue")
+                                  #       
+                                  #   )
+                                  #   ,
+                                  #   box(width = 12,
+                                  #       title = "Age des joueurs",
+                                  #       solidHeader = TRUE,collapsible = TRUE, background = NULL, collapsed = TRUE,
+                                  #       amChartsOutput("chart_vict_age")
+                                  #       
+                                  #   )
+                                  #   
+                                  #   
+                                  #   
+                                  #   
+                                  #   
+                                  #   
+                                  #   
+                                  #   
+                                  #   
+                                  #   
+                                  #   
+                                  #   
+                                  #   
+                                  #   
+                                  #   
+                                  #   
+                                  #   
+                                  # )
                                   
                                   
                                   
