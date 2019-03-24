@@ -7,6 +7,8 @@
 #    http://shiny.rstudio.com/
 #
 
+library("FactoMineR")
+library("factoextra")
 library(shiny)
 library(png)
 #load("../Data/table_score.RData")
@@ -627,4 +629,36 @@ shinyServer(function(input, output, session) {
     amBarplot(data = tab, x="Age", y="Tx_Victoire",main="Taux de victoire par rapport à l'age", groups_color="#67b7dc", creditsPosition = "bottom-right")
 
   })
+  
+  output$both <- renderPlot({
+    
+    fviz_pca_biplot (res_pca,
+                     col.ind = as.factor(table_score$coin), palette = "jco",
+                     addEllipses = TRUE, label = "var",
+                     col.var = "black", repel = TRUE,
+                     #select.var = list (contrib = 5),
+                     legend.title = "Victoire")
+    
+  })
+  
+  output$ind <- renderPlot({
+    
+    fviz_pca_ind(res_pca,
+                 geom.ind = "point", # Montre les points seulement (mais pas le "text")
+                 col.ind = as.factor(table_score$coin), # colorer by groups
+                 palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+                 addEllipses = TRUE, # Ellipses de concentration
+                 legend.title = "Victoire"
+    )
+    
+  })
+    
+  output$valpropre <- renderPlot({
+    
+    fviz_eig(res_pca, addlabels = TRUE, ylim = c(0, 50))
+    
+    
+  })
+    
+  
 })

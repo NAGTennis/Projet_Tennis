@@ -14,6 +14,11 @@ Type_surfaces <- c(" ",unique(Tennis_table[tourney_date>'20170101',.(surface)]))
 Nom_tournois <- c(" ",unique(Tennis_table[tourney_date>'20170101',.(tourney_name)]))
 models <- c("","Régression logistique", "Ridge", "Lasso", "Elasticnet", "XGBoost", "Random Forest")
 
+don <- table_score %>% select(-p2_name,-p1_name,-round,-tourney_level,-tourney_date,
+                              -tourney_name,-tourney_id,-surface,-coin)
+res_pca <- PCA(don, graph = FALSE)
+var <- get_pca_var(res_pca)
+
 shinyUI(dashboardPage(skin="green",
                       
                       dashboardHeader(
@@ -88,7 +93,7 @@ shinyUI(dashboardPage(skin="green",
                                       tabBox(
                                         title = "Quelques elements descriptifs",
                                         # The id lets us use input$tabset1 on the server to find the current tab
-                                        id = "tabset1", height = "600px",width = 10,
+                                        id = "tabset1", height = "600px",width = 12,
                                         tabPanel("Pays", amChartsOutput("chart_pays")),
                                         tabPanel("Pays", amChartsOutput("chart_vict_pays")),
                                         tabPanel("Surface", amChartsOutput("chart_surface")),
@@ -97,11 +102,11 @@ shinyUI(dashboardPage(skin="green",
                                       ),
                                       tabBox(
                                         title = "Resultats ACP",
-                                        height = "600px",width = 10,
+                                        height = "600px",width = 12,
                                         
-                                        tabPanel("Individus", ""),
-                                        tabPanel("Variables", ""),
-                                        tabPanel("Ensemble", "")
+                                        tabPanel("Valeurs propres", plotOutput("valpropre")),
+                                        tabPanel("Individus", plotOutput("ind")),
+                                        tabPanel("Ensemble", plotOutput("both"))
                                       )
                                     )
                                   )
