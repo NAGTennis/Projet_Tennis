@@ -22,6 +22,8 @@ library(ROCR)
 library(shinythemes)
 library(shinydashboard)
 library(rAmCharts)
+library(FactoMineR)
+library(factoextra)
 ###############################
 #### Fonctions
 f_replaceNA = function(DT) {

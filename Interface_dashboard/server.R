@@ -7,10 +7,6 @@
 #    http://shiny.rstudio.com/
 #
 
-library("FactoMineR")
-library("factoextra")
-library(shiny)
-library(png)
 #load("../Data/table_score.RData")
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {

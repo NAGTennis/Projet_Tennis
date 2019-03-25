@@ -173,7 +173,7 @@ shinyUI(dashboardPage(skin="green",
                           ),
                           
                           tabItem(tabName = "Application",
-                                  
+                                  fluidRow(
                                   fluidRow(
                                     # premier colonne
                                     column(width = 3, 
@@ -289,7 +289,7 @@ shinyUI(dashboardPage(skin="green",
                                   )
                                   
                                   
-                                  
+                                )
                                   
                           )
                           
@@ -299,7 +299,7 @@ shinyUI(dashboardPage(skin="green",
                         #CSS
                         ,tags$style(type = 'text/css', '#nom_j1, #nom_j2,#nom_j1_bis, #nom_j2_bis{color: #0099ff;font-size: 20px;text-align:center;overflow: hidden}')
                         ,tags$style(type = 'text/css', '#image_j1, #image_j2 {max-width: 300px}')
-                        ,tags$style(type = 'text/css', '#winner_img{max-width: 400px}')
+                        ,tags$style(type = 'text/css', '#winner_img{max-width: 300px}')
                         ,tags$style(type = 'text/css', '.shiny-split-layout>div {vertical-align: middle;}')
                         ,tags$style(type = 'text/css', '#image_surface_tournois{max-width: 200px}')
                       )
