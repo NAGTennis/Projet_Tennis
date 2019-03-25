@@ -15,7 +15,7 @@ library(knitr)
 #install.packages('dplyr')
 library(dplyr)
 #install.packages('dtplyr')
-# library(dtplyr)
+#library(dtplyr)
 library(randomForest)
 library(ggplot2)
 library(ROCR)
@@ -25,6 +25,14 @@ library(rAmCharts)
 library(FactoMineR)
 library(factoextra)
 ###############################
+#ACP
+#
+load("../Data/table_score.RData")
+don <- table_score %>% select(-p2_name,-p1_name,-round,-tourney_level,-tourney_date,
+                              -tourney_name,-tourney_id,-surface,-coin,-p1_id,-p2_id,-round_num,-match_num)
+res_pca <- PCA(don, graph = FALSE)
+var <- get_pca_var(res_pca)
+
 #### Fonctions
 f_replaceNA = function(DT) {
   for (j in seq_len(ncol(DT)))

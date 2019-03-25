@@ -15,7 +15,8 @@ Nom_tournois <- c(" ",unique(Tennis_table[tourney_date>'20170101',.(tourney_name
 models <- c("","Régression logistique", "Ridge", "Lasso", "Elasticnet", "XGBoost", "Random Forest")
 
 don <- table_score %>% select(-p2_name,-p1_name,-round,-tourney_level,-tourney_date,
-                              -tourney_name,-tourney_id,-surface,-coin)
+                              -tourney_name,-tourney_id,-surface,-coin,-p1_id,-p2_id,-round_num,-match_num)
+
 res_pca <- PCA(don, graph = FALSE)
 var <- get_pca_var(res_pca)
 
