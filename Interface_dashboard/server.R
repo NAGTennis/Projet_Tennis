@@ -378,6 +378,56 @@ shinyServer(function(input, output, session) {
     })
   })
   
+  
+  output$variable_resultat <- renderUI({
+    input$predict
+    isolate({
+      p1_name=input$nom1
+      p1_id=ifelse(length(Tennis_table_work[w_name==p1_name]$w_id)>0,Tennis_table_work[w_name==p1_name]$w_id[1],Tennis_table_work[l_name==p1_name]$l_id[1])
+      p2_name=input$nom2
+      p2_id=ifelse(length(Tennis_table_work[w_name==p2_name]$w_id)>0,Tennis_table_work[w_name==p2_name]$w_id[1],Tennis_table_work[l_name==p2_name]$l_id[1])
+      tourney_date=input$date
+      tourney_name=ifelse(input$tournois!=" ",input$tournois,0)
+      surface=ifelse(input$surface!=" ",input$surface,0)
+      age=as.numeric(difftime(anydate(tourney_date),anydate(atp_players[Player_Id==p1_id]$DateNaissance)))/365.25-as.numeric(difftime(anydate(tourney_date),anydate(atp_players[Player_Id==p2_id]$DateNaissance)))/365.25
+      hand=ifelse(atp_players[Player_Id==p1_id]$Main_Forte=='R',1,0)-ifelse(atp_players[Player_Id==p2_id]$Main_Forte=='R',1,0)
+      ht=ifelse(length(Tennis_table_work[w_name==p1_name]$w_ht)>0,Tennis_table_work[w_name==p1_name,.(ht=w_ht)][order(-ht)]$ht[1],Tennis_table_work[l_name==p1_name,.(ht=l_ht)][order(-ht)]$ht[1]) - ifelse(length(Tennis_table_work[w_name==p2_name]$w_ht)>0,Tennis_table_work[w_name==p2_name,.(ht=w_ht)][order(-ht)]$ht[1],Tennis_table_work[l_name==p2_name,.(ht=l_ht)][order(-ht)]$ht[1])
+      rang=Rank[Player_Id==p1_id][order(-DateRanking)]$Numero[1]-Rank[Player_Id==p2_id][order(-DateRanking)]$Numero[1]
+      points=Rank[Player_Id==p1_id][order(-DateRanking)]$Points[1]-Rank[Player_Id==p2_id][order(-DateRanking)]$Points[1]
+      
+      table_score=data.table(tourney_id=0
+                             ,tourney_name=tourney_name
+                             ,surface=surface
+                             ,tourney_date=tourney_date
+                             ,tourney_level=0
+                             ,match_num=0
+                             ,round=0
+                             ,round_num=0
+                             ,p1_id=p1_id
+                             ,p1_name=p1_name
+                             ,p2_id=p2_id
+                             ,p2_name=p2_name
+                             ,age=age,ht=ht,rank=rang,rank_points=points,hand=hand,seed=0)
+      
+      table_score[,c("hist_ace","hist_df","hist_1stIn","hist_1stWon","hist_2ndWon","hist_bpSaved","hist_bpMean","hist_bpConverted","hist_svptWon","hist_returnPtWon","hist_1stReturnWon","hist_2ndReturnWon"
+                     ,"Dix_ace","Dix_df","Dix_1stIn","Dix_1stWon","Dix_2ndWon","Dix_bpSaved","Dix_bpMean","Dix_bpConverted","Dix_svptWon","Dix_returnPtWon","Dix_1stReturnWon","Dix_2ndReturnWon"
+      )
+      := c((f_historique(Tennis_table_work,i_name=p1_name,i_surface=surface,i_date=tourney_date,i_round=round_num,i_matchnum=match_num)-f_historique(Tennis_table_work,i_name=p2_name,i_surface=surface,i_date=tourney_date,i_round=round_num,i_matchnum=match_num))
+           ,(f_historique(Tennis_table_work,i_name=p1_name,i_surface=surface,i_date=tourney_date,i_round=round_num,i_matchnum=match_num,i_row=10)-f_historique(Tennis_table_work,i_name=p2_name,i_surface=surface,i_date=tourney_date,i_round=round_num,i_matchnum=match_num,i_row=10))
+      )
+      ]
+      table_score[,c('NbVictoire') := c(f_NombreVictoire(Tennis_table_work,i_name=p1_name,i_round=round_num,i_match_num=match_num,i_date=tourney_date)-f_NombreVictoire(Tennis_table_work,i_name=p2_name,i_round=round_num,i_match_num=match_num,i_date=tourney_date))][,c('NbVictoireSaisonPrec'):=c(f_NombreVictoireSaisonPrecedente(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreVictoireSaisonPrecedente(Tennis_table_work,i_name=p2_name,i_date=tourney_date))]
+      
+      tags$ul(
+        tags$li(tags$h4(paste("Victoires de la saison précédente : ", table_score[,c('NbVictoireSaisonPrec')], sep="")))
+        ,tags$li(tags$h4(paste("Points de service remportés (10 matchs): ", round(table_score[,c('Dix_svptWon')],2), " %", sep="")))
+        ,tags$li(tags$h4(paste("Victoires en carrière : ", table_score[,c('NbVictoire')], sep="")))
+        ,tags$li(tags$h4(paste("Points de service remportés en carrière : ", round(table_score[,c('hist_svptWon')],2), " %", sep="")))
+        ,tags$li(tags$h4(paste("Age : ", round(table_score[,c('age')],2), sep="")))
+      )
+    })
+  })
+  
   output$stats_resultat <- renderAmCharts({
     input$predict
     isolate({
@@ -394,13 +444,37 @@ shinyServer(function(input, output, session) {
       rang=Rank[Player_Id==p1_id][order(-DateRanking)]$Numero[1]-Rank[Player_Id==p2_id][order(-DateRanking)]$Numero[1]
       points=Rank[Player_Id==p1_id][order(-DateRanking)]$Points[1]-Rank[Player_Id==p2_id][order(-DateRanking)]$Points[1]
       
-      tab=data.frame(
-        c("Tx de victoire Head to Head")
-        
-        , f_Headtohead(Tennis_table_work,i_name = p1_name,i_opponent = p2_name,i_date = tourney_date,i_round=0,i_matchnum=0)
-      )
-      colnames(tab)=c("categories",input$nom1)
-      amBarplot(x = "categories", y = c(input$nom1), data = tab)
+      table_score=data.table(tourney_id=0
+                             ,tourney_name=tourney_name
+                             ,surface=surface
+                             ,tourney_date=tourney_date
+                             ,tourney_level=0
+                             ,match_num=0
+                             ,round=0
+                             ,round_num=0
+                             ,p1_id=p1_id
+                             ,p1_name=p1_name
+                             ,p2_id=p2_id
+                             ,p2_name=p2_name
+                             ,age=age,ht=ht,rank=rang,rank_points=points,hand=hand,seed=0)
+      
+      table_score[,c("hist_ace","hist_df","hist_1stIn","hist_1stWon","hist_2ndWon","hist_bpSaved","hist_bpMean","hist_bpConverted","hist_svptWon","hist_returnPtWon","hist_1stReturnWon","hist_2ndReturnWon"
+                     ,"Dix_ace","Dix_df","Dix_1stIn","Dix_1stWon","Dix_2ndWon","Dix_bpSaved","Dix_bpMean","Dix_bpConverted","Dix_svptWon","Dix_returnPtWon","Dix_1stReturnWon","Dix_2ndReturnWon"
+                     )
+                  := c((f_historique(Tennis_table_work,i_name=p1_name,i_surface=surface,i_date=tourney_date,i_round=round_num,i_matchnum=match_num)-f_historique(Tennis_table_work,i_name=p2_name,i_surface=surface,i_date=tourney_date,i_round=round_num,i_matchnum=match_num))
+                       ,(f_historique(Tennis_table_work,i_name=p1_name,i_surface=surface,i_date=tourney_date,i_round=round_num,i_matchnum=match_num,i_row=10)-f_historique(Tennis_table_work,i_name=p2_name,i_surface=surface,i_date=tourney_date,i_round=round_num,i_matchnum=match_num,i_row=10))
+                    )
+                  ]
+      table_score[,c('NbVictoire') := c(f_NombreVictoire(Tennis_table_work,i_name=p1_name,i_round=round_num,i_match_num=match_num,i_date=tourney_date)-f_NombreVictoire(Tennis_table_work,i_name=p2_name,i_round=round_num,i_match_num=match_num,i_date=tourney_date))][,c('NbVictoireSaisonPrec'):=c(f_NombreVictoireSaisonPrecedente(Tennis_table_work,i_name=p1_name,i_date=tourney_date)-f_NombreVictoireSaisonPrecedente(Tennis_table_work,i_name=p2_name,i_date=tourney_date))]
+      
+      tab=cbind(
+            data.frame( c("NbVictoireSaisonPrec", "Dix_svptWon", "NbVictoire", "hist_svptWon", "age"))
+            ,t(table_score[,.(NbVictoireSaisonPrec, Dix_svptWon, NbVictoire, hist_svptWon, age)])
+          )
+      
+      
+      colnames(tab)=c("categories","valeur")
+      amBarplot(x = "categories", y = "valeur", data = tab)
     })
   })
   
@@ -621,7 +695,9 @@ shinyServer(function(input, output, session) {
   })
   
   output$chart_vict_age <- renderAmCharts({
+    
     tab=merge(Tennis_hist[,.(gagnant=.N),by=round(winner_age)],Tennis_hist[,.(perdant=.N),by=round(loser_age)],by="round")[round>17&round<35,.(Age=as.character(round),Tx_Victoire=round(gagnant/(gagnant+perdant),2))]
+    
     amBarplot(data = tab, x="Age", y="Tx_Victoire",main="Taux de victoire par rapport à l'age", groups_color="#67b7dc", creditsPosition = "bottom-right")
 
   })

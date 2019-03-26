@@ -203,17 +203,17 @@ shinyUI(dashboardPage(skin="green",
                                       ,conditionalPanel(condition ="input.go != ''"
                                                         ,column(width = 9,
                                                                 wellPanel(
-                                                                  fluidRow(height='auto',
+                                                                  fluidRow(style='height:auto',
                                                                            tabsetPanel(
                                                                              tabPanel("Match",
                                                                                       wellPanel(style = "background-color: #ffffff;"
-                                                                                                ,splitLayout(
+                                                                                                ,splitLayout(cellWidths = c("40%", "20%", "40%"),
                                                                                                   textOutput("nom_j1")
                                                                                                   ,HTML("<div style='text-align:center; font-size: 20px'>contre</div>")
                                                                                                   ,textOutput("nom_j2")
                                                                                                 )
                                                                                                 ,
-                                                                                                splitLayout(align='middle'
+                                                                                                splitLayout(cellWidths = c("40%", "20%", "40%"),align='middle'
                                                                                                             ,imageOutput("image_j1")
                                                                                                             ,imageOutput("image_surface_tournois")
                                                                                                             ,imageOutput("image_j2")
@@ -274,21 +274,23 @@ shinyUI(dashboardPage(skin="green",
                                            ,conditionalPanel(condition ="input.predict != ''"
                                                              ,wellPanel(
                                                                h1("Résultat du Match",style = "color : #0099ff;text-align:center")
-                                                               ,splitLayout(align='middle'
-                                                                            ,verticalLayout(
-                                                                              splitLayout(
-                                                                                h3("Vainqueur :",style = "color : #0099ff")
-                                                                                ,h3(textOutput("winner_name"))
-                                                                              )
-                                                                              ,splitLayout(
-                                                                                h3("Probabilité :",style = "color : #0099ff")
-                                                                                ,h3(textOutput("proba"))
-                                                                              )
-                                                                              ,splitLayout(
-                                                                                amChartsOutput("stats_resultat")
-                                                                              )
-                                                                            )
-                                                                            ,imageOutput("winner_img")
+                                                               
+                                                               ,splitLayout(align='middle',cellWidths = c("70%", "30%")
+                                                                    ,verticalLayout(
+                                                                      splitLayout(
+                                                                        h3("Vainqueur :",style = "color : #0099ff")
+                                                                        ,h3(textOutput("winner_name"))
+                                                                      )
+                                                                      ,splitLayout(
+                                                                        h3("Probabilité :",style = "color : #0099ff")
+                                                                        ,h3(textOutput("proba"))
+                                                                      )
+                                                                      ,splitLayout(
+                                                                        h3("Variables explicatives (Top 5) :",style = "color : #0099ff")
+                                                                        ,uiOutput("variable_resultat")
+                                                                      )
+                                                                    )
+                                                                    ,imageOutput("winner_img")
                                                                )
                                                              )
                                            )
