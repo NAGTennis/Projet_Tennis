@@ -183,6 +183,7 @@ shinyUI(dashboardPage(skin="green",
                                   br(),
                                   h1("Résultats"),
                                   h1("Exploitation du modèle retenu")
+                                  ,amChartsOutput("importance_rf")
                                   
                                   
                                   

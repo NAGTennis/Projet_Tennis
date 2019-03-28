@@ -428,6 +428,14 @@ shinyServer(function(input, output, session) {
     })
   })
   
+  output$importance_rf <- renderAmCharts({
+    
+      tab=head(data.table(rownames(test),test[,c("MeanDecreaseGini")])[order(-V2)],10)
+      
+      colnames(tab)=c("categories","valeur")
+      amBarplot(x = "categories", y = "valeur", data = tab)
+  })
+  
   output$stats_resultat <- renderAmCharts({
     input$predict
     isolate({
