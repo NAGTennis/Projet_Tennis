@@ -182,8 +182,12 @@ shinyUI(dashboardPage(skin="green",
                                   br(img(src="NB4.png",width = 600, align = "center")),
                                   br(),
                                   h1("Résultats"),
-                                  h1("Exploitation du modèle retenu")
-                                  ,amChartsOutput("importance_rf")
+                                  br(),
+                                  br(img(src="Tableau.png",width = 600, align = "center")),
+                                  br(),
+                                  h1("Exploitation du modèle retenu"),
+                                  br(),
+                                  amChartsOutput("importance_rf")
                                   
                                   
                                   
