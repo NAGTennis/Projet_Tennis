@@ -422,7 +422,7 @@ shinyServer(function(input, output, session) {
         tags$li(tags$h4(paste("Victoires de la saison précédente : ", table_score[,c('NbVictoireSaisonPrec')], sep="")))
         ,tags$li(tags$h4(paste("Points de service remportés (10 matchs): ", round(table_score[,c('Dix_svptWon')],2), " %", sep="")))
         ,tags$li(tags$h4(paste("Victoires en carrière : ", table_score[,c('NbVictoire')], sep="")))
-        ,tags$li(tags$h4(paste("Points de service remportés en carrière : ", round(table_score[,c('hist_svptWon')],2), " %", sep="")))
+        ,tags$li(tags$h4(paste("Points de service remportés (carrière) : ", round(table_score[,c('hist_svptWon')],2), " %", sep="")))
         ,tags$li(tags$h4(paste("Age : ", round(table_score[,c('age')],2), sep="")))
       )
     })
@@ -532,7 +532,7 @@ shinyServer(function(input, output, session) {
         set(table_score,which(is.nan(table_score[[j]])|is.na(table_score[[j]])|is.null(table_score[[j]])),j,0)
       
       
-      rf_pred=predict(rf,table_score,type='prob')
+      rf_pred=predict(rf500,table_score,type='prob')
       
       return(rf_pred[,2])
     })
