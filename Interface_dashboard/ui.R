@@ -115,6 +115,7 @@ shinyUI(dashboardPage(skin="green",
                                         tabPanel("Pays", amChartsOutput("chart_vict_pays")),
                                         tabPanel("Surface", amChartsOutput("chart_surface")),
                                         tabPanel("Fatigue", amChartsOutput("chart_fatigue")),
+                                        tabPanel("Abandon", amChartsOutput("chart_retour")),
                                         tabPanel("Age", amChartsOutput("chart_vict_age"))
                                       )
                                     )

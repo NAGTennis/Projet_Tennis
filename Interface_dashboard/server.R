@@ -689,10 +689,8 @@ shinyServer(function(input, output, session) {
     amBarplot(x = "Pays", y = "Tx de victoire", data = tab, depth=15, main='Taux de victoire par nationalité', creditsPosition = "bottom-right")
   })
   
-  output$chart_fatigue <- renderAmCharts({
-    tab=data.frame(c("Joueurs moins fatigués","Joueurs plus fatigués"),c((nrow(table_score[fatigue>0&coin==0])+nrow(table_score[fatigue<0&coin==1]))/nrow(table_score[fatigue!=0]),(nrow(table_score[fatigue>0&coin==1])+nrow(table_score[fatigue<0&coin==0]))/nrow(table_score[fatigue!=0])))
-    colnames(tab)=c("label","value")
-    amPie(data = tab, depth=15, main='Taux de victoire par rapport à la fatigue', creditsPosition = "bottom-right")
+  output$chart_retour <- renderAmCharts({
+    amSolidGauge(x = round((nrow(table_score[abandon_diff<0&coin==0])+nrow(table_score[abandon_diff>0&coin==1]))/(nrow(table_score[abandon_diff!=0])+42)*100,2), text = "%", type = "semi", main="Taux de victoire des joueurs de retour d'un abandon")
   })
   
   output$chart_fatigue <- renderAmCharts({
