@@ -422,10 +422,18 @@ shinyServer(function(input, output, session) {
         tags$li(tags$h4(paste("Victoires de la saison précédente : ", table_score[,c('NbVictoireSaisonPrec')], sep="")))
         ,tags$li(tags$h4(paste("Points de service remportés (10 matchs): ", round(table_score[,c('Dix_svptWon')],2), " %", sep="")))
         ,tags$li(tags$h4(paste("Victoires en carrière : ", table_score[,c('NbVictoire')], sep="")))
-        ,tags$li(tags$h4(paste("Points de service remportés en carrière : ", round(table_score[,c('hist_svptWon')],2), " %", sep="")))
+        ,tags$li(tags$h4(paste("Points de service remportés (carrière) : ", round(table_score[,c('hist_svptWon')],2), " %", sep="")))
         ,tags$li(tags$h4(paste("Age : ", round(table_score[,c('age')],2), sep="")))
       )
     })
+  })
+  
+  output$importance_rf <- renderAmCharts({
+    
+      tab=head(data.table(rownames(importance(rf500)),importance(rf500)[,c("MeanDecreaseGini")])[order(-V2)],10)
+      
+      colnames(tab)=c("categories","valeur")
+      amBarplot(x = "categories", y = "valeur", data = tab)
   })
   
   output$stats_resultat <- renderAmCharts({
@@ -532,7 +540,7 @@ shinyServer(function(input, output, session) {
         set(table_score,which(is.nan(table_score[[j]])|is.na(table_score[[j]])|is.null(table_score[[j]])),j,0)
       
       
-      rf_pred=predict(rf,table_score,type='prob')
+      rf_pred=predict(rf500,table_score,type='prob')
       
       return(rf_pred[,2])
     })
