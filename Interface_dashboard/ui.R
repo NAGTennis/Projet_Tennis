@@ -76,22 +76,24 @@ shinyUI(dashboardPage(skin="green",
                           
                           tabItem(tabName = "Objectif",
                                   h1("Contexte et objectif"),
-                                  h4(" "),
-                                  h4("Dans le cadre de la formation Data Scientist assurée par l'Ensae, nous avons décidé de réaliser un projet de data-science dans le domaine du sport, plus particulièrement du tennis."),
-                                  h4("Le but de ce projet est d'essayer de prédire au mieux l'issue d'un match de tennis opposant deux joueurs du circuit ATP."),
-                                  h4("Les étapes de la réalisation de ce projet ainsi que les nouvelles compétences utilisées peuvent être synthétisées de la façon suivante : "),
-                                  br(img(src="liste.png",width = 600, align = "center")),
                                   br(),
-                                  br("Creation d une application pour illustrer")
+                                  h4("Dans le cadre de la formation Data Scientist assurée par l'Ensae, nous avons décidé de réaliser un projet de data-science dans le domaine du sport, plus particulièrement celui du tennis."),
+                                  h4("Le but de ce projet est d'essayer de",HTML("<strong><u>prédire au mieux l'issue d'un match de tennis opposant deux joueurs du circuit ATP.</u></strong>")),
+                                  h4("Les étapes de la réalisation de ce projet ainsi que les nouvelles compétences utilisées peuvent être synthétisées de la façon suivante : "),
+                                  br(),
+                                  br(),
+                                  br(img(src="SchemasV2.png",width = 800, align = "center")),
+                                  br()
+                                  
                                   
                           ),
                           
                           tabItem(tabName = "Données",
                                   h1("Les donnees à disposition"),
                                   br(h3("Dans un premier temps, nous disposions de 3 jeux de donnees : ")),
-                                  br(img(src="donnees3.png",width = 800, align = "center")),
+                                  br(img(src="NB1.png",width = 800, align = "center")),
                                   br(h3("Retraitement : ")),
-                                  br(img(src="donnees5.png",width = 600, align = "center"))
+                                  br(img(src="NB2.png",width = 600, align = "center"))
                                   
                                   
                           ),
@@ -158,7 +160,9 @@ shinyUI(dashboardPage(skin="green",
                                   fluidRow(
                                     mainPanel(
                                       h2("Analyse en Composantes Principales"),
+                                      br(),
                                       h4("Première exploitation des variables"),
+                                      br(),
                                       
                                       tabBox(
                                         title = "Resultats ACP",
@@ -173,7 +177,13 @@ shinyUI(dashboardPage(skin="green",
                           ),
                           
                           tabItem(tabName="Modelisation",
-                                  h2("Les differents modeles testes")
+                                  h1("Démarche"),
+                                  br(),
+                                  br(img(src="NB4.png",width = 600, align = "center")),
+                                  br(),
+                                  h1("Résultats"),
+                                  h1("Exploitation du modèle retenu")
+                                  
                                   
                                   
                           ),
