@@ -546,7 +546,7 @@ shinyServer(function(input, output, session) {
     })
   
   output$proba <- renderText({
-    ifelse(proba()>=0.5,proba(),1-proba())
+    paste(ifelse(proba()>=0.5,round(proba()*100,2),round((1-proba())*100,2)),"%")
   })
   
   
@@ -693,6 +693,9 @@ shinyServer(function(input, output, session) {
     amSolidGauge(x = round((nrow(table_score[abandon_diff<0&coin==0])+nrow(table_score[abandon_diff>0&coin==1]))/(nrow(table_score[abandon_diff!=0])+42)*100,2), text = "%", type = "semi", main="Taux de victoire des joueurs de retour d'un abandon")
   })
   
+  output$chart_terrainpred <- renderAmCharts({
+    amSolidGauge(x = round((nrow(table_score[SurfacePred<0&coin==0])+nrow(table_score[SurfacePred>0&coin==1]))/(nrow(table_score[SurfacePred!=0])+42)*100,2), text = "%", type = "semi", main="Taux de victoire des joueurs sur leur surface de prédilection")
+  })
   output$chart_fatigue <- renderAmCharts({
     # tab=data.frame(c("Joueurs moins fatigués","Joueurs plus fatigués"),c((nrow(table_score[fatigue>0&coin==0])+nrow(table_score[fatigue<0&coin==1]))/nrow(table_score[fatigue!=0]),(nrow(table_score[fatigue>0&coin==1])+nrow(table_score[fatigue<0&coin==0]))/nrow(table_score[fatigue!=0])))
     # colnames(tab)=c("label","value")
